@@ -9,6 +9,9 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v4
+
     - name: Test
       run: kubectl get logs -A
       shell: bash
