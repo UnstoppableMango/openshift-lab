@@ -13,5 +13,5 @@ runs:
       uses: azure/setup-kubectl@v4
 
     - name: Test
-      run: kubectl get logs -A
+      run: kubectl get pods -A
       shell: bash
