@@ -1,0 +1,11 @@
+name: Build Image
+description: Build a container image using Podman
+inputs:
+  jdk:
+    description: JDK version to use for the build environment
+    required: false
+    default: '17'
+
+runs:
+  using: composite
+  steps: []

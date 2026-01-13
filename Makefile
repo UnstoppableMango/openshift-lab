@@ -6,7 +6,7 @@ export KUBECONFIG        ?= ${CURDIR}/.kube/config
 export KIND_CLUSTER_NAME ?= fhlb-lab
 
 up:
-	$(KIND) create cluster || true
+	$(KIND) create cluster --config cluster.yml || true
 
 down: uninstall
 	$(KIND) delete cluster || true
