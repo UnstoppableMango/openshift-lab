@@ -30,6 +30,7 @@
               kubectl
               kustomize
               kind
+              k9s
               openshift
               podman
             ];

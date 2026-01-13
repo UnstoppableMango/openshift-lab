@@ -1,2 +1,0 @@
-# https://gitlab.com/gitlab-org/charts/gitlab-runner/blob/main/values.yaml
-gitlabUrl: http://todo.example.com,runnerRegistrationToken=your-registration-token
