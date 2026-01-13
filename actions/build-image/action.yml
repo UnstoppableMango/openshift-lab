@@ -27,6 +27,6 @@ runs:
       with:
         context: ./actions/build-image
         push: true
-        tags: ghcr.io/${{ github.repository }}:latest
+        tags: ghcr.io/unstoppablemango/openshift-lab:latest
         build-args: |
           JDK=${{ inputs.jdk }}
