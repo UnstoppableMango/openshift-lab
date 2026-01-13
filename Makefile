@@ -1,5 +1,6 @@
 HELM ?= helm
 KIND ?= kind
+K9S  ?= k9s
 
 export KUBECONFIG        ?= ${CURDIR}/.kube/config
 export KIND_CLUSTER_NAME ?= fhlb-lab
@@ -40,4 +41,4 @@ github:
 		--set githubConfigSecret.github_token="${GITHUB_PAT}"
 
 k9s:
-	$(K9s) --kubeconfig ${KUBECONFIG}
+	$(K9S) --kubeconfig ${KUBECONFIG}

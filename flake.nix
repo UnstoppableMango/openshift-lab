@@ -42,6 +42,7 @@
             KIND = "${pkgs.kind}/bin/kind";
             KUBECTL = "${pkgs.kubectl}/bin/kubectl";
             KUSTOMIZE = "${pkgs.kustomize}/bin/kustomize";
+            K9S = "${pkgs.k9s}/bin/k9s";
             OC = "${pkgs.openshift}/bin/oc";
             PODMAN = "${pkgs.podman}/bin/podman";
           };
