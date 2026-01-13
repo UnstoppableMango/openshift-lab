@@ -8,6 +8,10 @@ inputs:
     description: Tag of the image to deploy
     required: false
     default: 'latest'
+  namespace:
+    description: Kubernetes namespace to deploy to
+    required: false
+    default: 'my-java-project'
 
 runs:
   using: composite
@@ -20,7 +24,7 @@ runs:
       run: |
         helm upgrade my-java-app ./actions/deploy-image/charts/java-app \
           --install \
-          --namespace my-java-project \
+          --namespace ${{ inputs.namespace }} \
           --create-namespace \
           --set image.repository=ghcr.io/unstoppablemango/${{ inputs.name }} \
           --set image.tag=${{ inputs.tag }}

@@ -12,7 +12,6 @@ Tasks:
     - gitlab artifacts(?)
     - Nexus
     - in-cluster
-  - Credentials
 - Runners
   - Hosting
     - Self-hosted hub/lab
@@ -22,6 +21,9 @@ Tasks:
     - Base image(s)
       - Java :heavy_check_mark:
       - other?
+    - Registry Credentials
   - Deploy
-    - Helm chart
-    - Manifests
+    - Method
+      - Helm chart
+      - Manifests
+    - Cluster Credentials
