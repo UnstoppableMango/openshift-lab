@@ -38,7 +38,9 @@ github:
 		--namespace arc-runners \
 		--create-namespace \
 		--set githubConfigUrl="https://github.com/UnstoppableMango/openshift-lab" \
-		--set githubConfigSecret.github_token="${GITHUB_PAT}"
+		--set githubConfigSecret.github_token="${GITHUB_PAT}" \
+		--set minRunners=1 \
+		--set containerMode.type=dind
 
 k9s:
 	$(K9S) --kubeconfig ${KUBECONFIG}
