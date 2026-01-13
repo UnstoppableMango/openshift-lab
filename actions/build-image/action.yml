@@ -1,10 +1,17 @@
 name: Build Image
 description: Build a container image using Podman
 inputs:
+  name:
+    description: Name of the image to build
+    required: true
   jdk:
     description: JDK version to use for the build environment
     required: false
     default: '17'
+  github-token:
+    description: GitHub token for authentication
+    required: false
+    default: ${{ github.token }}
 
 runs:
   using: composite
@@ -14,7 +21,7 @@ runs:
       with:
         registry: ghcr.io
         username: ${{ github.repository_owner }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+        password: ${{ inputs.github-token }}
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
@@ -27,6 +34,6 @@ runs:
       with:
         context: ./actions/build-image
         push: true
-        tags: ghcr.io/unstoppablemango/openshift-lab
+        tags: ghcr.io/unstoppablemango/${{ inputs.name }}:latest
         build-args: |
           JDK=${{ inputs.jdk }}

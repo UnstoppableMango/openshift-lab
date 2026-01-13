@@ -8,4 +8,7 @@ inputs:
 
 runs:
   using: composite
-  steps: []
+  steps:
+    - name: Test
+      run: kubectl get logs -A
+      shell: bash
