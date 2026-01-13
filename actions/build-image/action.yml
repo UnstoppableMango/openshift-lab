@@ -1,0 +1,25 @@
+name: Build Image
+description: Build a container image using Podman
+inputs:
+  jdk:
+    description: JDK version to use for the build environment
+    required: false
+    default: '17'
+
+runs:
+  using: composite
+  steps:
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build and push
+      uses: docker/build-push-action@v5
+      with:
+        context: ./actions/build-image
+        push: false
+        tags: ${{ github.repository }}:latest
+        build-args: |
+          JDK=${{ inputs.jdk }}
