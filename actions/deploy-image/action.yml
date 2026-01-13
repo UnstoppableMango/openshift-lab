@@ -1,17 +1,26 @@
 name: Build Image
 description: Build a container image using Podman
 inputs:
-  jdk:
-    description: JDK version to use for the build environment
+  name:
+    description: Name of the image to deploy
+    required: true
+  tag:
+    description: Tag of the image to deploy
     required: false
-    default: '17'
+    default: 'latest'
 
 runs:
   using: composite
   steps:
-    - name: Setup kubectl
-      uses: azure/setup-kubectl@v4
+    - name: Setup helm
+      uses: azure/setup-helm@v4
 
-    - name: Test
-      run: kubectl get pods -A
+    - name: Deploy Helm Chart
       shell: bash
+      run: |
+        helm upgrade my-java-app ./actions/deploy-image/charts/java-app \
+          --install \
+          --namespace my-java-project \
+          --create-namespace \
+          --set image.repository=ghcr.io/unstoppablemango/${{ inputs.name }} \
+          --set image.tag=${{ inputs.tag }}
