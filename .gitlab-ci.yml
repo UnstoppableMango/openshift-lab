@@ -1,0 +1,10 @@
+build:
+  stage: build
+  image: quay.io/podman/stable
+  before_script:
+    - podman info
+    # TODO: Registry credentials
+    # - podman login ghcr.io -u $GITHUB_ACTOR -p $GITHUB_TOKEN
+  script:
+    - podman build --build-arg JDK=17 -t ghcr.io/unstoppablemango/my-image:latest ./actions/build-image
+    # - podman push ghcr.io/unstoppablemango/my-image:latest

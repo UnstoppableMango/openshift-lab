@@ -71,6 +71,7 @@ make down
   - Networking restrictions
 - Provide a paved path for developers to build their applications
   - GitLab
+    - Parent-Child/Multi-Project pipelines
   - GitHub
     - Custom action `fhlb-actions/build-image`
   - Base image for applications
@@ -94,6 +95,7 @@ make down
   - kustomize
 - Provide a paved path for developers to deploy their applications
   - GitLab
+    - Parent-Child/Multi-Project pipelines
   - GitHub
     - Custom action `fhlb-actions/deploy-image`
   - Helm chart
