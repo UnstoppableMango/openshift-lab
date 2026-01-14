@@ -45,24 +45,43 @@ make down
 
 Tasks:
 
-- Image Registry
-  - Hosting
-    - ghcr.io :heavy_check_mark:
-    - gitlab artifacts(?)
-    - Nexus
-    - in-cluster
-- Runners
-  - Hosting
-    - Self-hosted hub/lab
-    - GitHub hosted :heavy_check_mark:
-- Actions
-  - Build
-    - Base image(s)
-      - Java :heavy_check_mark:
-      - other?
-    - Registry Credentials
-  - Deploy
-    - Method
-      - Helm chart
-      - Manifests
-    - Cluster Credentials
+- Container Image Hosting
+  - Decide on a hosting solution
+    - GitLab container registry to start
+    - GitHub container registry when it is available
+  - Ensure cluster can pull images
+    - Private registry credentials
+    - Networking restrictions
+- Container Image Building
+  - Decide on the build tool
+    - `podman` stays within the ecosystem
+    - `docker` is a popular default
+  - Ensure runners have the build tool installed
+    - GitLab
+    - GitHub: `redhat-actions/podman-install`
+  - Ensure runners can build container images
+    - Dockerfile -> Docker image
+    - Dockerfile -> OCI image
+    - Containerfile -> OCI image
+  - Ensure runners can push images
+    - Credential storage
+    - Networking restrictions
+  - Provide a paved path for developers to build their applications
+    - GitLab
+    - GitHub: custom action `fhlb-actions/build-image`
+    - Java app base image
+    - Other apps?
+- Application Deployment
+  - Ensure runners can connect to the cluster
+  - Ensure runners have permissions to deploy manifests
+    - Auth token can only deploy to single namespace
+    - Auth token can deploy to entire cluster
+  - Ensure runners have the correct tools installed
+    - oc
+    - kubectl
+    - helm
+    - kustomize
+  - Provide a paved path for developers to deploy their applications
+    - GitLab
+    - GitHub: custom action `fhlb-actions/deploy-image`
+    - Helm chart
