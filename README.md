@@ -75,7 +75,7 @@ make down
     - CI/CD componentss
     - Parent-Child/Multi-Project pipelines
   - GitHub
-    - Custom action `fhlb-actions/build-image`
+    - Custom action `openshift-actions/build-image`
   - Base image for applications
     - Java
     - Other?
@@ -101,5 +101,5 @@ make down
     - CI/CD components
     - Parent-Child/Multi-Project pipelines
   - GitHub
-    - Custom action `fhlb-actions/deploy-image`
+    - Custom action `openshift-actions/deploy-image`
   - Helm chart

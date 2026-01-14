@@ -3,7 +3,7 @@ KIND ?= kind
 K9S  ?= k9s
 
 export KUBECONFIG        ?= ${CURDIR}/.kube/config
-export KIND_CLUSTER_NAME ?= fhlb-lab
+export KIND_CLUSTER_NAME ?= openshift-lab
 
 up:
 	$(KIND) create cluster --config cluster.yml || true
