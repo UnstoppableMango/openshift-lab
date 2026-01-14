@@ -71,6 +71,8 @@ make down
   - Networking restrictions
 - Provide a paved path for developers to build their applications
   - GitLab
+    - `include` shared yaml
+    - CI/CD componentss
     - Parent-Child/Multi-Project pipelines
   - GitHub
     - Custom action `fhlb-actions/build-image`
@@ -95,6 +97,8 @@ make down
   - kustomize
 - Provide a paved path for developers to deploy their applications
   - GitLab
+    - `include` shared yaml
+    - CI/CD components
     - Parent-Child/Multi-Project pipelines
   - GitHub
     - Custom action `fhlb-actions/deploy-image`
