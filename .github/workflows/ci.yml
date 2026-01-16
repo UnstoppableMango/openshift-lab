@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [ gharc ]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: arc-runner
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Build container image
+        uses: ./actions/build-image
+        with:
+          name: openshift-lab
+          jdk: '17'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy container image
+        uses: ./actions/deploy-image
