@@ -24,7 +24,8 @@
           devShells.default = pkgs.mkShellNoCC {
             packages = with pkgs; [
               crc
-              docker
+              docker-client
+              docker-credential-helpers
               gh
               kubernetes-helm
               kubectl
