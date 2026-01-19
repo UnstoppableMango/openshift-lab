@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ gharc ]
+    branches: [ tutorial ]
 
 permissions:
   contents: read
@@ -19,7 +19,7 @@ jobs:
         uses: ./actions/build-image
         with:
           name: openshift-lab
-          jdk: '17'
+          github-username: unstoppablemango
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Deploy container image

@@ -9,10 +9,10 @@ GitHub Actions is the primary CI/CD tool in use, but parallels will be drawn wit
 
 The following subsections explain...
 
-1. How to configure and deploy GitHub Actions Runner Controller
-2. How to write a simple (composite) GitHub action
-3. How to build container images using `podman`
-4. How to deploy a containerized application using `helm`
+1. How to build container images using `podman`
+2. How to deploy a containerized application using `helm`
+3. How to write a simple (composite) GitHub action
+4. How to configure and deploy GitHub Actions Runner Controller
 
 ### Prerequisites
 
@@ -95,18 +95,22 @@ touch .github/workflows/ci.yml
 
 First, we'll add some boilerplate to satisfy the minimum requirements of a workflow.
 Copy the following YAML into the new workflow file.
+If you are working on a branch other than `main`, use that branch instead.
 
 ```yaml
-name: CI # All GitHub workflows need a name
-
+name: CI
 on:
-  push: # Trigger this workflow when code is pushed
+  # Trigger this workflow when code is pushed
+  push:
     branches:
-      - main # Use whatever branch name you are working off of
+      # Use whatever branch name you are working off of
+      - main
 
 permissions:
-  contents: read # Allow the workflow to read the repository contents
-  packages: write # Allow the workflow to push our container image to `ghcr.io`
+  # Allow the workflow to read the repository contents
+  contents: read
+  # Allow the workflow to push our container image to `ghcr.io`
+  packages: write
 ```
 
 Now we have a valid GitHub workflow to build on.
@@ -169,9 +173,10 @@ Modify `.github/workflows/ci.yml` to add the following YAML.
 
     - name: Build the container image
       run: podman build . --tag ghcr.io/${{ env.GITHUB_USERNAME }}/nginx:latest
-```
 
-This step will authenticate our runner, allowing it to push images to the GitHub container registry.
++     - name: Push the container image
++       run: podman push ghcr.io/${{ env.GITHUB_USERNAME }}/nginx:latest
+```
 
 ## Deploy GitHub Actions Runner Controller
 

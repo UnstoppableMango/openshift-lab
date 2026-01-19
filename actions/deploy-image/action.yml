@@ -1,0 +1,17 @@
+name: Build Container Image
+description: Build a container image using specified JDK version
+inputs:
+  name:
+    description: 'Name of the container image to build'
+    required: true
+    default: 'my-container-image'
+  github-token:
+    description: 'GitHub token for authentication'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Deploy the application
+      run: echo TODO
+      shell: bash
