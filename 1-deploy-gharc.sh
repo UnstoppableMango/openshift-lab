@@ -26,4 +26,4 @@ helm upgrade gharc-runner "$SCALE_SET_CHART" \
   --set "githubConfigUrl=https://github.com/$GITHUB_REPOSITORY" \
   --set "githubConfigSecret.github_token=$GITHUB_PAT" \
   --set minRunners=1 \
-  --set containerMode.type=dind
+  --set containerMode.type=kubernetes-novolume

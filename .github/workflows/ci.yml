@@ -11,6 +11,7 @@ permissions:
 jobs:
   build:
     runs-on: gharc-runner
+    container: quay.io/podman/stable:latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
