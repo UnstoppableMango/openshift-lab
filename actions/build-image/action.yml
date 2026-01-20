@@ -15,8 +15,13 @@ inputs:
 runs:
   using: composite
   steps:
+    - run: sudo apt-get install --allow-unauthenticated -qq -y libnftables1 libnl-3-200 libprotobuf-c1
+      shell: bash
+
     - name: Install Podman
       uses: redhat-actions/podman-install@main
+      with:
+        github-token: ${{ inputs.github-token }}
 
     - name: Log in to ghcr.io
       uses: redhat-actions/podman-login@v1
