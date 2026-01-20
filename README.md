@@ -40,9 +40,11 @@ gh repo create openshift-cicd-test --public
 ```
 
 Using the GitHub web UI, prepare a Personal Access Token (PAT) for later use.
-The token will need the following scopes.
+The token will need the `repo` scope.
 
-- TODO
+> [!TIP]
+> [direnv](https://direnv.net/) can be used to store this secret locally while working.
+> Add `export GITHUB_PAT='<your-token-here>'` to a file named `.envrc` and run `direnv allow`.
 
 ## Build a container image
 
@@ -181,10 +183,43 @@ Modify `.github/workflows/ci.yml` to add the following YAML.
 ## Deploy GitHub Actions Runner Controller
 
 In order to deploy changes to a cluster, the compute running our workflows needs access to the cluster's API server.
-Typically, hosted compute will work fine, barring any special network security requirements.
+Typically, hosted compute will work fine barring any special network security requirements.
 
 To facilitate running this tutorial in our OpenShift Local cluster, we'll deploy the GitHub Actions Runner Controller (GHARC).
 GHARC is a cloud-native tool to orchestrate GitHub Actions runners on a kubernetes cluster.
 In this tutorial, we'll use it to quickly and easily grant the CI/CD runner access to our local cluster's kubernetes API server.
 
-TODO
+Run the following script to deploy GHARC to the cluster:
+
+```shell
+$ ./1-deploy-gharc.sh
+Release "gharc" does not exist. Installing it now.
+Pulled: ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set-controller:0.13.1
+Digest: sha256:3a7becceb2c8f5e400a6b828390f43d782bb8e9f58aaeade536c899570bcc572
+NAME: gharc
+LAST DEPLOYED: Tue Jan 20 13:00:36 2026
+NAMESPACE: arc-system
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+Thank you for installing gha-runner-scale-set-controller.
+
+Your release is named gharc.
+Waiting for deployment "gharc-gha-rs-controller" rollout to finish: 0 of 1 updated replicas are available...
+deployment "gharc-gha-rs-controller" successfully rolled out
+clusterrole.rbac.authorization.k8s.io/system:openshift:scc:privileged added: "gharc-gha-rs-controller"
+Release "gharc-runner" does not exist. Installing it now.
+Pulled: ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set:0.13.1
+Digest: sha256:39f9b61ee7e2865d7b8dd0e4e28b7c1a065765fc2ce5bf90874dd8e8be8ee2b2
+NAME: gharc-runner
+LAST DEPLOYED: Tue Jan 20 13:00:39 2026
+NAMESPACE: arc-system
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+Thank you for installing gha-runner-scale-set.
+
+Your release is named gharc-runner.
+```
