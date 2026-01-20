@@ -27,3 +27,7 @@ helm upgrade gharc-runner "$SCALE_SET_CHART" \
   --set "githubConfigSecret.github_token=$GITHUB_PAT" \
   --set minRunners=1 \
   --set containerMode.type=kubernetes-novolume
+
+oc adm policy add-scc-to-user privileged \
+  --serviceaccount gharc-runner-gha-rs-kube-mode \
+  --namespace "$NAMESPACE"

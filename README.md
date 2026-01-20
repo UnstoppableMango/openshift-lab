@@ -190,10 +190,12 @@ To facilitate running this tutorial in our OpenShift Local cluster, we'll deploy
 GHARC is a cloud-native tool to orchestrate GitHub Actions runners on a kubernetes cluster.
 We'll use it to quickly grant the CI/CD runner access to our local cluster's kubernetes API server.
 
-Run the following script to deploy GHARC to the cluster:
+Run the following script to deploy GHARC to the cluster.
+Replace `GITHUB_REPOSITORY` with your repository name in the format `username/repository`.
+Replace `GITHUB_PAT` with the personal access token you created earlier.
 
 ```shell
-$ ./1-deploy-gharc.sh
+$ GITHUB_REPOSITORY='your/repository' GITHUB_PAT='gh_yourPatHere' ./1-deploy-gharc.sh
 Release "gharc" does not exist. Installing it now.
 Pulled: ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set-controller:0.13.1
 Digest: sha256:3a7becceb2c8f5e400a6b828390f43d782bb8e9f58aaeade536c899570bcc572
@@ -224,3 +226,19 @@ Thank you for installing gha-runner-scale-set.
 
 Your release is named gharc-runner.
 ```
+
+A few resources will have just been created, but we only need to worry about the runner pod right now.
+If everything has been successful up to this point, we should have a pod running in the `arc-system` namespace with a name that looks something like `gharc-runner-fxz9g-runner-nn5fw`.
+
+To verify this, we can run:
+
+```shell
+$ kubectl get pods --namespace arc-system
+NAME                                      READY   STATUS    RESTARTS   AGE
+gharc-gha-rs-controller-8c7d7786b-g7k72   1/1     Running   0          43m
+gharc-runner-6b79c7d4-listener            1/1     Running   0          13m
+gharc-runner-fxz9g-runner-nn5fw           1/1     Running   0          8m4s
+```
+
+This is where our GitHub workflow will be executed.
+Since its running on our local cluster, it will be able to send requests to the API server!
