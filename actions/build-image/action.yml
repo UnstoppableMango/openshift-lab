@@ -15,7 +15,9 @@ inputs:
 runs:
   using: composite
   steps:
-    - run: sudo apt-get install --allow-unauthenticated -qq -y libnftables1 libnl-3-200 libprotobuf-c1
+    - run: |
+        sudo apt-get update -qq
+        sudo apt-get install --allow-unauthenticated -qq -y libnftables1 libnl-3-200 libprotobuf-c1
       shell: bash
 
     - name: Install Podman
