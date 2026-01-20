@@ -182,12 +182,13 @@ Modify `.github/workflows/ci.yml` to add the following YAML.
 
 ## Deploy GitHub Actions Runner Controller
 
-In order to deploy changes to a cluster, the compute running our workflows needs access to the cluster's API server.
+In order to deploy our custom `nginx` image to a cluster, the compute running our workflows needs access to the cluster's API server.
 Typically, hosted compute will work fine barring any special network security requirements.
+Since our cluster is running on our local machine, the GitHub hosted runners will not be able to connect to it.
 
 To facilitate running this tutorial in our OpenShift Local cluster, we'll deploy the GitHub Actions Runner Controller (GHARC).
 GHARC is a cloud-native tool to orchestrate GitHub Actions runners on a kubernetes cluster.
-In this tutorial, we'll use it to quickly and easily grant the CI/CD runner access to our local cluster's kubernetes API server.
+We'll use it to quickly grant the CI/CD runner access to our local cluster's kubernetes API server.
 
 Run the following script to deploy GHARC to the cluster:
 
