@@ -142,7 +142,7 @@ permissions:
 > [!NOTE]
 > In GitLab we would add content to `.gitlab-ci.yml` like:
 >
-> ```shell
+> ```yaml
 > stages:
 >   - build
 >
@@ -177,18 +177,18 @@ Modify `.github/workflows/ci.yml` to add the following YAML.
     - name: Install Podman
       uses: redhat-actions/podman-install@main
 +
-+    - name: Log in to ghcr.io
-+      uses: redhat-actions/podman-login@v1
-+      with:
-+        registry: ghcr.io
-+        username: ${{ env.GITHUB_USERNAME }}
-+        password: ${{ github.token }}
++   - name: Log in to ghcr.io
++     uses: redhat-actions/podman-login@v1
++     with:
++       registry: ghcr.io
++       username: ${{ env.GITHUB_USERNAME }}
++       password: ${{ github.token }}
 
     - name: Build the container image
       run: podman build . --tag ghcr.io/${{ env.GITHUB_USERNAME }}/nginx:latest
 +
-+    - name: Push the container image
-+      run: podman push ghcr.io/${{ env.GITHUB_USERNAME }}/nginx:latest
++   - name: Push the container image
++     run: podman push ghcr.io/${{ env.GITHUB_USERNAME }}/nginx:latest
 ```
 
 > [!NOTE]
@@ -200,8 +200,8 @@ Modify `.github/workflows/ci.yml` to add the following YAML.
 > build-image:
 >   image: quay.io/podman/stable
 >   stage: build
-> +  before_script:
-> +    - podman login -u $GITLAB_USER -p $REGISTRY_PASSWORD
+> + before_script:
+> +   - podman login -u $GITLAB_USER -p $REGISTRY_PASSWORD
 >   script:
 >     - podman build . --tag ghcr.io/$GITLAB_USER/nginx:latest
 > +   - podman push ghcr.io/$GITLAB_USER/nginx:latest
@@ -308,37 +308,37 @@ Add the following YAML to our workflow file:
     - name: Push the container image
       run: podman push ghcr.io/${{ env.GITHUB_USERNAME }}/nginx:latest
 +
-+    - name: Authenticate and set context
-+      uses: redhat-actions/oc-login@v1
-+      with:
-+        openshift_server_url: https://api.crc.testing:6443
-+        openshift_token: ${{ secrets.OPENSHIFT_TOKEN }}
++   - name: Authenticate and set context
++     uses: redhat-actions/oc-login@v1
++     with:
++       openshift_server_url: https://api.crc.testing:6443
++       openshift_token: ${{ secrets.OPENSHIFT_TOKEN }}
 +
-+    - name: Deploy the application
-+      run: |
-+        helm upgrade nginx-app --install ./charts/nginx-app \
-+          --namespace openshift-lab \
-+          --create-namespace \
-+          --values ./values.yaml
++   - name: Deploy the application
++     run: |
++       helm upgrade nginx-app --install ./charts/nginx-app \
++         --namespace openshift-lab \
++         --create-namespace \
++         --values ./values.yaml
 ```
 
 > [!NOTE]
 > In GitLab we would add content to `.gitlab-ci.yml` like:
 >
-> ```shell
+> ```diff
 > stages:
 >   - build
-> +  - deploy
+> + - deploy
 >
 > # ... elided
 >
-> + deploy-image:
-> +   image: docker.io/alpine/helm:3.19.1
-> +   stage: deploy
-> +   before_script:
-> +     - oc login --token $OPENSHIFT_TOKEN $OPENSHIFT_URL
-> +   script:
-> +     - helm upgrade nginx-app --install ./charts/nginx-app # ...
+> +deploy-image:
+> +  image: docker.io/alpine/helm:3.19.1
+> +  stage: deploy
+> +  before_script:
+> +    - oc login --token $OPENSHIFT_TOKEN $OPENSHIFT_URL
+> +  script:
+> +    - helm upgrade nginx-app --install ./charts/nginx-app # ...
 > ```
 
 First we log in to the cluster.
