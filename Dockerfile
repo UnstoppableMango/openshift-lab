@@ -1,1 +1,1 @@
-FROM docker.io/nginx:latest
+FROM docker.io/nginxinc/nginx-unprivileged:latest

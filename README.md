@@ -39,13 +39,6 @@ Using the GitHub CLI (`gh`) this could be done with the following command.
 gh repo create openshift-cicd-test --public
 ```
 
-Using the GitHub web UI, prepare a Personal Access Token (PAT) for later use.
-The token will need the `repo` scope.
-
-> [!TIP]
-> [direnv](https://direnv.net/) can be used to store this secret locally while working.
-> Add `export GITHUB_PAT='<your-token-here>'` to a file named `.envrc` and run `direnv allow`.
-
 ## Build a container image
 
 Our goal in this tutorial is to automate deploying an application to the cluster.
@@ -102,7 +95,6 @@ If you are working on a branch other than `main`, use that branch instead.
 ```yaml
 name: CI
 on:
-  # Trigger this workflow when code is pushed
   push:
     branches:
       # Use whatever branch name you are working off of
@@ -166,79 +158,176 @@ Modify `.github/workflows/ci.yml` to add the following YAML.
     - name: Install Podman
       uses: redhat-actions/podman-install@main
 +
-+     - name: Log in to ghcr.io
-+       uses: redhat-actions/podman-login@v1
-+       with:
-+         registry: ghcr.io
-+         username: ${{ env.GITHUB_USERNAME }}
-+         password: ${{ github.token }}
++    - name: Log in to ghcr.io
++      uses: redhat-actions/podman-login@v1
++      with:
++        registry: ghcr.io
++        username: ${{ env.GITHUB_USERNAME }}
++        password: ${{ github.token }}
 
     - name: Build the container image
       run: podman build . --tag ghcr.io/${{ env.GITHUB_USERNAME }}/nginx:latest
-
-+     - name: Push the container image
-+       run: podman push ghcr.io/${{ env.GITHUB_USERNAME }}/nginx:latest
++
++    - name: Push the container image
++      run: podman push ghcr.io/${{ env.GITHUB_USERNAME }}/nginx:latest
 ```
 
-## Deploy GitHub Actions Runner Controller
+Commit and push these changes as well.
+Now, when our workflow runs it will push the built image to GitHub's container registry!
+Once the workflow has completed, navigate to your repository's landing page again and find the "Packages" section.
+It is typically located on the right-hand side of the page, below "Releases".
 
-In order to deploy our custom `nginx` image to a cluster, the compute running our workflows needs access to the cluster's API server.
-Typically, hosted compute will work fine barring any special network security requirements.
-Since our cluster is running on our local machine, the GitHub hosted runners will not be able to connect to it.
+![GitHub Packages](assets/github-packages.png)
 
-To facilitate running this tutorial in our OpenShift Local cluster, we'll deploy the GitHub Actions Runner Controller (GHARC).
-GHARC is a cloud-native tool to orchestrate GitHub Actions runners on a kubernetes cluster.
-We'll use it to quickly grant the CI/CD runner access to our local cluster's kubernetes API server.
+If you don't see the section right away, wait a bit and refresh the page.
+New packages can be slow to update in the web UI.
 
-Run the following script to deploy GHARC to the cluster.
-Replace `GITHUB_REPOSITORY` with your repository name in the format `username/repository`.
-Replace `GITHUB_PAT` with the personal access token you created earlier.
+Select your image "package" from the list to view metadata such as the URI and published tags.
+The commands displayed by GitHub use `docker`, but we can replace it with `podman` for every command run in this tutorial.
+
+We'll pull the image as a quick sanity check.
+Run the following command, replacing the image with your custom image name.
 
 ```shell
-$ GITHUB_REPOSITORY='your/repository' GITHUB_PAT='gh_yourPatHere' ./1-deploy-gharc.sh
-Release "gharc" does not exist. Installing it now.
-Pulled: ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set-controller:0.13.1
-Digest: sha256:3a7becceb2c8f5e400a6b828390f43d782bb8e9f58aaeade536c899570bcc572
-NAME: gharc
-LAST DEPLOYED: Tue Jan 20 13:00:36 2026
-NAMESPACE: arc-system
-STATUS: deployed
-REVISION: 1
-TEST SUITE: None
-NOTES:
-Thank you for installing gha-runner-scale-set-controller.
-
-Your release is named gharc.
-Waiting for deployment "gharc-gha-rs-controller" rollout to finish: 0 of 1 updated replicas are available...
-deployment "gharc-gha-rs-controller" successfully rolled out
-clusterrole.rbac.authorization.k8s.io/system:openshift:scc:privileged added: "gharc-gha-rs-controller"
-Release "gharc-runner" does not exist. Installing it now.
-Pulled: ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set:0.13.1
-Digest: sha256:39f9b61ee7e2865d7b8dd0e4e28b7c1a065765fc2ce5bf90874dd8e8be8ee2b2
-NAME: gharc-runner
-LAST DEPLOYED: Tue Jan 20 13:00:39 2026
-NAMESPACE: arc-system
-STATUS: deployed
-REVISION: 1
-TEST SUITE: None
-NOTES:
-Thank you for installing gha-runner-scale-set.
-
-Your release is named gharc-runner.
+$ podman pull ghcr.io/<your-github-username>/nginx:latest
+Trying to pull ghcr.io/<your-github-username>/nginx:latest...
+Getting image source signatures
+Copying blob sha256:34c42acdc6abce4fb775913eaff45b0ba43e061fa0a0079d18f2242a122cd4b2
+Copying blob sha256:d7696ad810223b99a0cd3bafdd896355d8efaf59bc8cffd96d26833f05b84cb0
+Copying blob sha256:ea368c811a9e76ca60f51346f41e6cd8dcb00fa9c1b8ad9e151c7309a88f4953
+Copying blob sha256:5dd5dbcfe763c67dd6fd39c13b9421fcfa62f425fc0c99ec64cfa669c6c0b4ed
+Copying blob sha256:033e6114b40efd338043aa417866810fd96dddcc5394aca79ea402fdc925cb3e
+Copying blob sha256:490702eb1db134dfcfb5e7be59d65d25ff0b1fdca9b05e4b3c2e206faa3273c3
+Copying blob sha256:0971f88e0caa0faeceaebfda1bf84aee73bdbcd92631119032b827bb05a1a7ab
+Copying config sha256:4af177a024eb8a1e43f4fb6c66735bb8260115cb5925a64f51673219bd97c144
+Writing manifest to image destination
+4af177a024eb8a1e43f4fb6c66735bb8260115cb5925a64f51673219bd97c144
 ```
 
-A few resources will have just been created, but we only need to worry about the runner pod right now.
-If everything has been successful up to this point, we should have a pod running in the `arc-system` namespace with a name that looks something like `gharc-runner-fxz9g-runner-nn5fw`.
+Now that we have a container image in a public container registry, we can deploy it to our cluster!
 
-To verify this, we can run:
+## Create kubernetes manifests
+
+Kubernetes offers many methods of deploying code to a cluster, we'll use [Helm](https://helm.sh/) here because it allows us to create a deployment "package".
+In the production environment, this package could conceivably be managed by an infrastructure team and provided to development teams as a paved-path for deployment.
+The default helm template also contains all the resources we'll need to quickly get our app running.
+
+Run the following command to create a new Helm chart located at `./charts/nginx-app`:
 
 ```shell
-$ kubectl get pods --namespace arc-system
-NAME                                      READY   STATUS    RESTARTS   AGE
-gharc-gha-rs-controller-8c7d7786b-g7k72   1/1     Running   0          43m
-gharc-runner-6b79c7d4-listener            1/1     Running   0          13m
-gharc-runner-fxz9g-runner-nn5fw           1/1     Running   0          8m4s
+$ helm create charts/nginx-app
+Creating charts/nginx-app
 ```
 
-This is where our GitHub workflow will be executed.
-Since its running on our local cluster, it will be able to send requests to the API server!
+This command will have generated quite a few files, but we'll focus on just a couple of them.
+
+- `charts/nxing-app/Chart.yaml` contains the chart package definition. We don't need to worry about its contents right now, but know that it describes the package so `helm` know how to work with it.
+- `charts/nginx-app/values.yaml` contains the [Helm "values"](https://helm.sh/docs/chart_template_guide/values_files/), or the configuration we supply to helm when we're deploying.
+- `charts/nginx-app/templates/deployment.yaml` contains the kubernetes "Deployment" resource that represents the deployment of our application on the cluster.
+
+Within `charts/nginx-app/templates/deployment.yaml` pay attention to the line that looks like this:
+
+```yaml
+image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+```
+
+With the template created by `helm` v3.19.1 this is located on line 41.
+
+This is using the [helm template syntax](https://helm.sh/docs/topics/charts#templates-and-values) but we can gloss over that for now.
+The important part is that this line specifies the image that the application will use when it is deployed.
+We'll need to teach helm where to find our custom image when we run the deployment command in the next section.
+
+## Deploy the application to the cluster
+
+For this section we'll need to diverge from standard CI/CD flows so that we can run the application on our OpenShift local cluster.
+We'll add more GitHub actions YAML to see what it looks like, but we'll disable these steps and execute equivalent commands on our local machine.
+This keeps the tutorial light and focused, the reasoning is elaborated on in the [section below](#cicd-runners-and-networking).
+
+Add the following YAML to our workflow file:
+
+```diff
+# ... elided
+
+    - name: Push the container image
+      run: podman push ghcr.io/${{ env.GITHUB_USERNAME }}/nginx:latest
+
++    - name: Authenticate and set context
++      uses: redhat-actions/oc-login@v1
++      with:
++        openshift_server_url: https://api.crc.testing:6443
++        openshift_token: ${{ secrets.OPENSHIFT_TOKEN }}
++
++    - name: Deploy the application
++      run: |
++        helm upgrade nginx-app --install ./charts/nginx-app \
++          --namespace openshift-lab \
++          --create-namespace \
++          --set image.repository=ghcr.io/<your-github-username>/nginx \
++          --set image.tag=latest
+```
+
+First we log in to the cluster.
+In production, this would use the credentials of a pre-configured cluster service account with permissions to deploy manifests to a single namespace.
+Auth is outside the scope of this tutorial, but we'll cover it heavily elsewhere.
+
+Lets break down what this command is doing.
+
+- `upgrade` tells helm we want to deploy changes
+- `nginx-app` is an arbitrary name we give to the helm **release**
+- `--install` tells helm to install the release if it doesn't exist yet
+- `./charts/nginx-app` points to the chart we want to deploy. This is usually a repository name of the form `repository/chart` or an OCI url of the form `oci://repository/chart` but local file paths work as well.
+- `--namespace openshift-lab` tells `helm` which kubernetes namespace we want to deploy to, in this case "openshift-lab"
+- `--create-namespace` tells helm to create the namespace if it does not exist
+- `--set image.repository=ghcr.io/<your-github-username>/nginx` sets a helm **value**. Here, the value `image.repository` is set to `ghcr.io/<your-github-username>/nginx`. This is how we can define `.Values.image.repository` that we saw earlier in `deployment.yaml`
+- `--set image.tag=latest` sets an additional helm **value**. We can provide as many of these as we need to configure our application. Here we are filling in the value for `.Values.image.tag` that we saw earlier in `deployment.yaml`
+
+You can verify the server URL with your local machine by runnning the following command.
+This value doesn't matter, since we'll be performing the deployment manually instead of the runner.
+
+```shell
+$ oc whoami --show-server
+https://api.crc.testing:6443
+```
+
+If GitHub Actions were actually running our workflow, we would need to create a secret for `${{ secrets.OPENSHIFT_TOKEN }}`.
+We can get this value for our local cluster with the following command:
+
+```shell
+$ oc whoami --show-token
+sha256~tHi55iSF4k3m-hs3LlOf6X6VrDKIsDdU7kiN2sGtJC4
+```
+
+Feel free to discard this token, we won't actually use it.
+
+### Run the deployment manually
+
+We'll perform the deployment steps manually since the GitHub hosted runners can't connect to our machine.
+We've already authenticated to our cluster locally, so we don't need to replicate the `oc login` step.
+Take the `helm` command from our workflow file and execute it on your machine.
+
+```shell
+$ helm upgrade nginx-app --install ./charts/nginx-app --namespace openshift-lab --create-namespace --set image.repository=ghcr.io/<your-github-username>/nginx --set image.tag=latest
+Release "nginx-app" does not exist. Installing it now.
+NAME: nginx-app
+LAST DEPLOYED: Wed Jan 21 13:07:26 2026
+NAMESPACE: openshift-lab
+STATUS: deployed
+REVISION: 1
+NOTES:
+1. Get the application URL by running these commands:
+  export POD_NAME=$(kubectl get pods --namespace openshift-lab -l "app.kubernetes.io/name=nginx-app,app.kubernetes.io/instance=nginx-app" -o jsonpath="{.items[0].metadata.name}")
+  export CONTAINER_PORT=$(kubectl get pod --namespace openshift-lab $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
+  echo "Visit http://127.0.0.1:8080 to use your application"
+  kubectl --namespace openshift-lab port-forward $POD_NAME 8080:$CONTAINER_PORT
+```
+
+### CI/CD, Runners, and Networking
+
+The machine running our GitHub Actions workflows needs to be able to send network requests to the kubernetes API server in order to perform deployment tasks.
+Our OpenShift Local clusters are running locally, likely behind a firewall and one or more layers of NAT, and the GitHub hosted runners we're using are running somewhere else entirely.
+We could perform some trickery to poke a hole and allow the runners access to our cluster, but this carries security risks and is outside the scope of this tutorial.
+
+We focus on a "push" based flow in order to more accurately model the production workflow, but alternatively we could use a "pull" based flow.
+In this model, the cluster watches for changes to some upstream source, a GitHub repository in our case, and pulls them in automatically when they occur.
+Therefore we don't need to configure anything special for the CI/CD runner, it only needs to be able to push to the container registry.
+This is usually referred to as "GitOps" and some popular tools that support this are `flux` and `argocd`.
