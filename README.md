@@ -140,11 +140,20 @@ permissions:
 ```
 
 > [!NOTE]
-> In GitLab this would look like
+> In GitLab we would add content to `.gitlab-ci.yml` like:
 >
 > ```shell
 > stages:
 >   - build
+>
+> variables:
+>   GITHUB_USERNAME: <your-github-username>
+>
+> build-image:
+>   image: quay.io/podman/stable
+>   stage: build
+>   script:
+>     - podman build . --tag ghcr.io/$GITHUB_USERNAME/nginx:latest
 > ```
 
 Commit everything we've created up to this point.
@@ -181,6 +190,22 @@ Modify `.github/workflows/ci.yml` to add the following YAML.
 +    - name: Push the container image
 +      run: podman push ghcr.io/${{ env.GITHUB_USERNAME }}/nginx:latest
 ```
+
+> [!NOTE]
+> In GitLab we would add content to `.gitlab-ci.yml` like:
+>
+> ```diff
+> # ... elieded
+>
+> build-image:
+>   image: quay.io/podman/stable
+>   stage: build
+> +  before_script:
+> +    - podman login -u $GITLAB_USER -p $REGISTRY_PASSWORD
+>   script:
+>     - podman build . --tag ghcr.io/$GITLAB_USER/nginx:latest
+> +   - podman push ghcr.io/$GITLAB_USER/nginx:latest
+> ```
 
 Commit and push these changes as well.
 Now, when our workflow runs it will push the built image to GitHub's container registry!
@@ -296,6 +321,25 @@ Add the following YAML to our workflow file:
 +          --create-namespace \
 +          --values ./values.yaml
 ```
+
+> [!NOTE]
+> In GitLab we would add content to `.gitlab-ci.yml` like:
+>
+> ```shell
+> stages:
+>   - build
+> +  - deploy
+>
+> # ... elided
+>
+> + deploy-image:
+> +   image: docker.io/alpine/helm:3.19.1
+> +   stage: deploy
+> +   before_script:
+> +     - oc login --token $OPENSHIFT_TOKEN $OPENSHIFT_URL
+> +   script:
+> +     - helm upgrade nginx-app --install ./charts/nginx-app # ...
+> ```
 
 First we log in to the cluster.
 In production, this would use the credentials of a pre-configured cluster service account with permissions to deploy manifests to a single namespace.
