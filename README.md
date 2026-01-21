@@ -139,6 +139,14 @@ permissions:
 +       run: podman build . --tag ghcr.io/${{ env.GITHUB_USERNAME }}/nginx:latest
 ```
 
+> [!NOTE]
+> In GitLab this would look like
+>
+> ```shell
+> stages:
+>   - build
+> ```
+
 Commit everything we've created up to this point.
 We should have two new files, `.github/workflows/ci.yml` and `Dockerfile`.
 Push the commit to GitHub, using the same remote branch you used in the workflow `push` trigger.
@@ -417,3 +425,7 @@ We focus on a "push" based flow in order to more accurately model the production
 In this model, the cluster watches for changes to some upstream source, a GitHub repository in our case, and pulls them in automatically when they occur.
 Therefore we don't need to configure anything special for the CI/CD runner, it only needs to be able to push to the container registry.
 This is usually referred to as "GitOps" and some popular tools that support this are `flux` and `argocd`.
+
+## Bonus Material - Custom Actions
+
+TODO
