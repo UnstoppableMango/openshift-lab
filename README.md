@@ -38,6 +38,8 @@ Using the GitHub CLI (`gh`) this could be done with the following command.
 gh repo create openshift-cicd-test --public
 ```
 
+Once created, clone the repo somewhere on your machine; this is where we'll work out of.
+
 ## Build a container image
 
 Our goal in this tutorial is to automate deploying an application to the cluster.
@@ -111,7 +113,7 @@ Now we have a valid GitHub workflow to build on.
 Next we'll create a job that will build a container image, and push it to `ghcr.io`.
 
 Copy the following YAML below the boilerplate we just added.
-Make sure to replace `change_me` with the lower-cased version of your GitHub username!
+Make sure to replace `<your-github-username>` with the **lower-cased** version of your GitHub username!
 
 ```diff
 # ... elided
@@ -122,7 +124,7 @@ permissions:
 
 + env:
 +   # Replace with your GitHub username, lower-cased
-+   GITHUB_USERNAME: change_me
++   GITHUB_USERNAME: <your-github-username>
 +
 + jobs:
 +   build:
@@ -182,7 +184,7 @@ It is typically located on the right-hand side of the page, below "Releases".
 If you don't see the section right away, wait a bit and refresh the page.
 New packages can be slow to update in the web UI.
 
-Select your image "package" from the list to view metadata such as the URI and published tags.
+Select your image's "package" from the list to view metadata such as the URI and published tags.
 The commands displayed by GitHub use `docker`, but we can replace it with `podman` for every command run in this tutorial.
 
 We'll pull the image as a quick sanity check.
@@ -233,9 +235,10 @@ image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.App
 
 With the template created by `helm` v3.19.1 this is located on line 41.
 
-This is using the [helm template syntax](https://helm.sh/docs/topics/charts#templates-and-values) but we can gloss over that for now.
+The current value may look a little cryptic, as it is using the [helm template syntax](https://helm.sh/docs/topics/charts#templates-and-values) but we can gloss over that for now.
 The important part is that this line specifies the image that the application will use when it is deployed.
 We'll need to teach helm where to find our custom image when we run the deployment command in the next section.
+We can see that we'll need to give it `.Values.image.repository` and `.Values.image.tag`.
 
 Helm allows us to supply configuration from a few different sources, we'll use the file-based configuration here.
 As mentioned above, the default configuration lives in `charts/nginx-app/values.yaml`.
@@ -251,6 +254,8 @@ image:
 service:
   port: 8080
 ```
+
+We set `port` to `8080` since this is the default port used by `nginxinc/nginx-unprivileged`.
 
 This configuration will be merged with the default configuration when we create the helm release.
 In effect, these values _override_ the default values.
@@ -318,7 +323,7 @@ Feel free to discard this token, we won't actually use it.
 
 ### Run the deployment manually
 
-We'll perform the deployment steps manually since the GitHub hosted runners can't connect to our machine.
+We'll use `helm` to deploy manually since the GitHub hosted runners can't connect to our machine.
 We performed the `oc login` step earlier, so we're already authenticated.
 Take the `helm` command from our workflow file and execute it on your machine.
 
@@ -340,9 +345,10 @@ NOTES:
 
 If everything was successful, we should now have a single nginx pod running!
 
-You'll notice the upgrade command printed some notes after it completed, including some commands to connect to the application.
-Feel free to execute these if you desire, but we won't go into the specifics here.
-The commands reference `kubectl`, but you can safely replace that with `oc`, as the `oc` tool implements the same cluster commands.
+> [!NOTE]
+> You'll notice the upgrade command printed some notes after it completed, including some commands to connect to the application.
+> Feel free to execute these if you desire, but we won't go into the specifics here.
+> The commands reference `kubectl`, but you can safely replace that with `oc`, as the `oc` tool implements the same cluster commands.
 
 For our purposes, we can verify the deployment was successful with the following commands.
 
