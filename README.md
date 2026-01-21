@@ -12,7 +12,6 @@ The following subsections explain...
 1. How to build container images using `podman`
 2. How to deploy a containerized application using `helm`
 3. How to write a simple (composite) GitHub action
-4. How to configure and deploy GitHub Actions Runner Controller
 
 ### Prerequisites
 
