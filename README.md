@@ -222,8 +222,8 @@ Creating charts/nginx-app
 
 This command will have generated quite a few files, but we'll focus on just a couple of them.
 
-- `charts/nxing-app/Chart.yaml` contains the chart package definition. We don't need to worry about its contents right now, but know that it describes the package so `helm` know how to work with it.
-- `charts/nginx-app/values.yaml` contains the [Helm "values"](https://helm.sh/docs/chart_template_guide/values_files/), or the configuration we supply to helm when we're deploying.
+- `charts/nxing-app/Chart.yaml` contains the chart package definition. We don't need to worry about its contents right now, but know that it describes the package so `helm` knows how to work with it.
+- `charts/nginx-app/values.yaml` contains the default [Helm "values"](https://helm.sh/docs/chart_template_guide/values_files/) or, in other words, the configuration we supply to helm when we're deploying.
 - `charts/nginx-app/templates/deployment.yaml` contains the kubernetes "Deployment" resource that represents the deployment of our application on the cluster.
 
 Within `charts/nginx-app/templates/deployment.yaml` pay attention to the line that looks like this:
@@ -238,6 +238,25 @@ This is using the [helm template syntax](https://helm.sh/docs/topics/charts#temp
 The important part is that this line specifies the image that the application will use when it is deployed.
 We'll need to teach helm where to find our custom image when we run the deployment command in the next section.
 
+Helm allows us to supply configuration from a few different sources, we'll use the file-based configuration here.
+As mentioned above, the default configuration lives in `charts/nginx-app/values.yaml`.
+This file is very useful to reference when constructing your own `values.yaml` file.
+
+Let's create our own values file now, create `values.yaml` with the following contents.
+As before, replace `<your-github-username>` with the lower-cased version of your username so that `repository` matches your image name.
+
+```yaml
+image:
+  repostory: ghcr.io/<your-github-username>/nginx
+  tag: latest
+service:
+  port: 8080
+```
+
+This configuration will be merged with the default configuration when we create the helm release.
+In effect, these values _override_ the default values.
+Check out the [Helm documentation](https://helm.sh/docs/chart_template_guide/values_files/) for more information on values.
+
 ## Deploy the application to the cluster
 
 For this section we'll need to diverge from standard CI/CD flows so that we can run the application on our OpenShift local cluster.
@@ -251,7 +270,7 @@ Add the following YAML to our workflow file:
 
     - name: Push the container image
       run: podman push ghcr.io/${{ env.GITHUB_USERNAME }}/nginx:latest
-
++
 +    - name: Authenticate and set context
 +      uses: redhat-actions/oc-login@v1
 +      with:
@@ -263,9 +282,7 @@ Add the following YAML to our workflow file:
 +        helm upgrade nginx-app --install ./charts/nginx-app \
 +          --namespace openshift-lab \
 +          --create-namespace \
-+          --set image.repository=ghcr.io/<your-github-username>/nginx \
-+          --set image.tag=latest \
-+          --set service.port=8080
++          --values ./values.yaml
 ```
 
 First we log in to the cluster.
@@ -280,12 +297,10 @@ Lets break down what this command is doing.
 - `./charts/nginx-app` points to the chart we want to deploy. This is usually a repository name of the form `repository/chart` or an OCI url of the form `oci://repository/chart` but local file paths work as well.
 - `--namespace openshift-lab` tells `helm` which kubernetes namespace we want to deploy to, in this case "openshift-lab"
 - `--create-namespace` tells helm to create the namespace if it does not exist
-- `--set image.repository=ghcr.io/<your-github-username>/nginx` sets a helm **value**. Here, the value `image.repository` is set to `ghcr.io/<your-github-username>/nginx`. This is how we can define `.Values.image.repository` that we saw earlier in `deployment.yaml`
-- `--set image.tag=latest` sets an additional helm **value**. We can provide as many of these as we need to configure our application. Here we are filling in the value for `.Values.image.tag` that we saw earlier in `deployment.yaml`
-- `--set service.port=8080` sets the exposed port to 8080, the default port used by the `nginxinc/nginx-unprivileged` image
+- `--values ./values.yaml` tells helm to source configuration from the `./values.yaml` file we created earlier
 
 You can verify the server URL with your local machine by runnning the following command.
-This value doesn't matter, since we'll be performing the deployment manually instead of the runner.
+This value doesn't actually matter, since we'll be performing the deployment manually instead of the runner.
 
 ```shell
 $ oc whoami --show-server
@@ -325,14 +340,25 @@ NOTES:
 ```
 
 If everything was successful, we should now have a single nginx pod running!
-We can verify this with the following commands.
+
+You'll notice the upgrade command printed some notes after it completed, including some commands to connect to the application.
+Feel free to execute these if you desire, but we won't go into the specifics here.
+The commands reference `kubectl`, but you can safely replace that with `oc`, as the `oc` tool implements the same cluster commands.
+
+For our purposes, we can verify the deployment was successful with the following commands.
+
+First we list all the pods in the `openshift-lab` namespace:
 
 ```shell
-$ kubectl get pods --namespace openshift-lab
+$ oc get pods --namespace openshift-lab
 NAME                         READY   STATUS    RESTARTS   AGE
 nginx-app-7cc9d9885d-8dmsk   1/1     Running   0          5s
+```
 
-$ kubectl logs --namespace openshift-lab nginx-app-7cc9d9885d-8dmsk
+Then we use the pod name to inspect its logs:
+
+```shell
+$ oc logs --namespace openshift-lab nginx-app-7cc9d9885d-8dmsk
 /docker-entrypoint.sh: /docker-entrypoint.d/ is not empty, will attempt to perform configuration
 /docker-entrypoint.sh: Looking for shell scripts in /docker-entrypoint.d/
 /docker-entrypoint.sh: Launching /docker-entrypoint.d/10-listen-on-ipv6-by-default.sh
@@ -354,6 +380,10 @@ $ kubectl logs --namespace openshift-lab nginx-app-7cc9d9885d-8dmsk
 2026/01/21 19:27:27 [notice] 1#1: start worker process 26
 10.217.0.2 - - [21/Jan/2026:19:27:28 +0000] "GET / HTTP/1.1" 200 615 "-" "kube-probe/1.33" "-"
 ```
+
+Your output will likely look different, but you should see one or more lines like `"GET / HTTP/1.1" 200`.
+
+With that, we've successfully automated a (nearly) full application deployment lifecycle!
 
 ### CI/CD, Runners, and Networking
 
