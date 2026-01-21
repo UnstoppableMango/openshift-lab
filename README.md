@@ -442,6 +442,17 @@ Your output will likely look different, but you should see one or more lines lik
 
 With that, we've successfully automated a (nearly) full application deployment lifecycle!
 
+### CI/CD, Runners, and Networking
+
+The machine running our GitHub Actions workflows needs to be able to send network requests to the kubernetes API server in order to perform deployment tasks.
+Our OpenShift Local clusters are running locally, likely behind a firewall and one or more layers of NAT, and the GitHub hosted runners we're using are running somewhere else entirely.
+We could perform some trickery to poke a hole and allow the runners access to our cluster, but this carries security risks and is outside the scope of this tutorial.
+
+We focus on a "push" based flow in order to more accurately model the production workflow, but alternatively we could use a "pull" based flow.
+In this model, the cluster watches for changes to some upstream source, a GitHub repository in our case, and pulls them in automatically when they occur.
+Therefore we don't need to configure anything special for the CI/CD runner, it only needs to be able to push to the container registry.
+This is usually referred to as "GitOps" and some popular tools that support this are `flux` and `argocd`.
+
 ## Teardown
 
 Optionally, to tear down the resources we created we can run a few commands.
@@ -459,17 +470,92 @@ Delete the GitHub repository:
 gh repo delete <your-github-repository>
 ```
 
-### CI/CD, Runners, and Networking
-
-The machine running our GitHub Actions workflows needs to be able to send network requests to the kubernetes API server in order to perform deployment tasks.
-Our OpenShift Local clusters are running locally, likely behind a firewall and one or more layers of NAT, and the GitHub hosted runners we're using are running somewhere else entirely.
-We could perform some trickery to poke a hole and allow the runners access to our cluster, but this carries security risks and is outside the scope of this tutorial.
-
-We focus on a "push" based flow in order to more accurately model the production workflow, but alternatively we could use a "pull" based flow.
-In this model, the cluster watches for changes to some upstream source, a GitHub repository in our case, and pulls them in automatically when they occur.
-Therefore we don't need to configure anything special for the CI/CD runner, it only needs to be able to push to the container registry.
-This is usually referred to as "GitOps" and some popular tools that support this are `flux` and `argocd`.
-
 ## Bonus Material - Custom Actions
 
-TODO
+Our final GitHub workflow wasn't too terribly long, but it contained mostly boilerplate that will be common to all application deployments.
+We can further abstract out this boilerplate from our workflow using [composite actions](https://docs.github.com/en/actions/tutorials/create-actions/create-a-composite-action).
+
+> [!NOTE]
+> In GitLab, we could use [the include directive](https://docs.gitlab.com/ci/yaml/includes/).
+
+Create a new file at `./actions/build-image/action.yml` with the following contents:
+
+```yaml
+name: Build Container Image
+inputs:
+  name:
+    description: 'Name of the container image to build'
+    required: true
+    default: 'my-container-image'
+  github-username:
+    description: 'GitHub username for authentication'
+    required: true
+  github-token:
+    description: 'GitHub token for authentication'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: redhat-actions/podman-install@main
+      with:
+        github-token: ${{ inputs.github-token }}
+
+    - uses: redhat-actions/podman-login@v1
+      with:
+        registry: ghcr.io
+        username: ${{ inputs.github-username }}
+        password: ${{ inputs.github-token }}
+
+    - run: podman build . --tag ghcr.io/${{ inputs.github-username }}/${{ inputs.name }}:latest
+      shell: bash
+
+    - run: podman push ghcr.io/${{ inputs.github-username }}/${{ inputs.name }}:latest
+      shell: bash
+```
+
+This is a lot of the same content we used in `./.github/workflows/ci.yml`.
+Of note, we now have `inputs:` that consumers of this action can use to customize details about the image build.
+In each of the `steps` we've replaced our "hardcoded" values with input expressions, like `${{ inputs.name }}`.
+
+> [!NOTE]
+> We also added `using: composite` and a few `shell: bash` lines.
+> These are quirks of composite actions, the steps will run the same as they did in our top-level workflow.
+
+Now, we can go back into `./.github/workflows/ci.yml` and update it to use our new composite action.
+
+Make the following changes to `./.github/workflows/ci.yml`:
+
+```diff
+# ... elided
+
+-   - name: Install Podman
+-     uses: redhat-actions/podman-install@main
+-
+-   - name: Log in to ghcr.io
+-     uses: redhat-actions/podman-login@v1
+-     with:
+-       registry: ghcr.io
+-       username: ${{ env.GITHUB_USERNAME }}
+-       password: ${{ github.token }}
+-
+-   - name: Build the container image
+-     run: podman build . --tag ghcr.io/${{ env.GITHUB_USERNAME }}/nginx:latest
+-
+-   - name: Push the container image
+-     run: podman push ghcr.io/${{ env.GITHUB_USERNAME }}/nginx:latest
++   - name: Build container image
++     uses: ./actions/build-image
++     with:
++       name: nginx
++       github-username: ${{ env.GITHUB_USERNAME }}
++       github-token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+Commit and push the changes.
+Our workflow should work exactly the same as it did before, but now we can share our deployment steps with other applications.
+We put the action in a local path within the current repository for this example, but actions can live (almost) anywhere.
+
+It is common to host actions in their own repository, and refer to them using the repository name and version tag.
+This is actually what all the steps with `uses:` are doing!
+For example, here is the [action.yml for actions/checkout@v5](https://github.com/actions/checkout/blob/v5/action.yml).

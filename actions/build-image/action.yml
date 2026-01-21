@@ -1,5 +1,5 @@
 name: Build Container Image
-description: Build a container image using specified JDK version
+description: Build a container image
 inputs:
   name:
     description: 'Name of the container image to build'
