@@ -266,7 +266,8 @@ Within `charts/nginx-app/templates/deployment.yaml` pay attention to the line th
 image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
 ```
 
-With the template created by `helm` v3.19.1 this is located on line 41.
+> [!TIP]
+> With the template created by `helm` v3.19.1 this is located on line 41.
 
 The current value may look a little cryptic, as it is using the [helm template syntax](https://helm.sh/docs/topics/charts#templates-and-values) but we can gloss over that for now.
 The important part is that this line specifies the image that the application will use when it is deployed.
