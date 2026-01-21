@@ -390,6 +390,23 @@ Your output will likely look different, but you should see one or more lines lik
 
 With that, we've successfully automated a (nearly) full application deployment lifecycle!
 
+## Teardown
+
+Optionally, to tear down the resources we created we can run a few commands.
+
+Uninstall the `nginx-app` helm release:
+
+```shell
+$ helm uninstall nginx-app --namespace openshift-lab
+release "nginx-app" uninstalled
+```
+
+Delete the GitHub repository:
+
+```shell
+gh repo delete <your-github-repository>
+```
+
 ### CI/CD, Runners, and Networking
 
 The machine running our GitHub Actions workflows needs to be able to send network requests to the kubernetes API server in order to perform deployment tasks.
