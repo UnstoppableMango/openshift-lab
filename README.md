@@ -44,32 +44,33 @@ gh repo create openshift-cicd-test --public
 Our goal in this tutorial is to automate deploying an application to the cluster.
 We'll use `nginx` as a lightweight, stateless, web application for now.
 
-To practice building containers, we'll "extend" the official `nginx` image for our application.
+To practice building containers, we'll "extend" the nginx `nginx-unprivileged` image for our application.
 Copy the following contents into `Dockerfile`.
 
 ```dockerfile
-FROM docker.io/nginx:latest
+FROM docker.io/nginxinc/nginx-unprivileged:latest
 ```
 
 To build the image, run the following command.
 
 ```shell
 $ podman build .
-STEP 1/1: FROM docker.io/nginx:latest
-Trying to pull docker.io/library/nginx:latest...
+STEP 1/1: FROM docker.io/nginxinc/nginx-unprivileged:latest
+Trying to pull docker.io/nginxinc/nginx-unprivileged:latest...
 Getting image source signatures
-Copying blob sha256:57f0dd1befe210f3a7186fe46ad1552d4bc8864701c8cec580676144bc37d425
-Copying blob sha256:700146c8ad64762607eb0076d9fe376bed85c65f27650a4f3b76fc66f72e9846
+Copying blob sha256:57cfc71dff455540ee208a6981cc6ee813855240305c47ab43d71eb2d84fc1da
+Copying blob sha256:5efcb0ecd7fe7ccac9212d9c57992fd8c45709c67b5cdf633f9c700d448dac62
+Copying blob sha256:f16d1bfb7e9cd31bcab80ae237db31b72c4613253855e671bf5fab1d588f6e8b
+Copying blob sha256:683f775e06c51bd293757bd7742660775a823701cc6ed6d86a6c30572e6acfde
 Copying blob sha256:119d43eec815e5f9a47da3a7d59454581b1e204b0c34db86f171b7ceb3336533
-Copying blob sha256:10b68cfefee1d8726f1f754e9f566b73bd4df2531476315e6ac55b4fe18e1717
-Copying blob sha256:500799c304244b0545f8f1d54d86d3a17512c219cd0edd3d5f5b60f68f5c6f93
-Copying blob sha256:d989100b8a84afca8cb4b5bcc62beec741cb69e181fe7815d79e4aa04c36ca59
-Copying blob sha256:eaf8753feae0b5aaadb86ac2cb972ff57cff12f877ad50c548fde8092e85e7fb
-Copying config sha256:4af177a024eb8a1e43f4fb6c66735bb8260115cb5925a64f51673219bd97c144
+Copying blob sha256:5e815e3c88fb3b206a5773f7b063b6c5262feea6605788185f1c1d210f28d818
+Copying blob sha256:c0584c8a972e6ee9da918860d89889cc4aae55aae33a1bb9ad7867cb044360bb
+Copying blob sha256:664d64e66ef8fae3cff0c91d4beb30464435c9932aa03ca1a7b1c587658c7b91
+Copying config sha256:93336860160f2268feed3f3bada0131c1d8f19ab5e46c3c459043a999a129835
 Writing manifest to image destination
 COMMIT
---> 4af177a024eb
-4af177a024eb8a1e43f4fb6c66735bb8260115cb5925a64f51673219bd97c144
+--> 93336860160f
+93336860160f2268feed3f3bada0131c1d8f19ab5e46c3c459043a999a129835
 ```
 
 Now that we've verified we can build a container on our local machine, we'll configure a GitHub workflow to automate the process.
@@ -263,7 +264,8 @@ Add the following YAML to our workflow file:
 +          --namespace openshift-lab \
 +          --create-namespace \
 +          --set image.repository=ghcr.io/<your-github-username>/nginx \
-+          --set image.tag=latest
++          --set image.tag=latest \
++          --set service.port=8080
 ```
 
 First we log in to the cluster.
@@ -280,6 +282,7 @@ Lets break down what this command is doing.
 - `--create-namespace` tells helm to create the namespace if it does not exist
 - `--set image.repository=ghcr.io/<your-github-username>/nginx` sets a helm **value**. Here, the value `image.repository` is set to `ghcr.io/<your-github-username>/nginx`. This is how we can define `.Values.image.repository` that we saw earlier in `deployment.yaml`
 - `--set image.tag=latest` sets an additional helm **value**. We can provide as many of these as we need to configure our application. Here we are filling in the value for `.Values.image.tag` that we saw earlier in `deployment.yaml`
+- `--set service.port=8080` sets the exposed port to 8080, the default port used by the `nginxinc/nginx-unprivileged` image
 
 You can verify the server URL with your local machine by runnning the following command.
 This value doesn't matter, since we'll be performing the deployment manually instead of the runner.
@@ -302,11 +305,11 @@ Feel free to discard this token, we won't actually use it.
 ### Run the deployment manually
 
 We'll perform the deployment steps manually since the GitHub hosted runners can't connect to our machine.
-We've already authenticated to our cluster locally, so we don't need to replicate the `oc login` step.
+We performed the `oc login` step earlier, so we're already authenticated.
 Take the `helm` command from our workflow file and execute it on your machine.
 
 ```shell
-$ helm upgrade nginx-app --install ./charts/nginx-app --namespace openshift-lab --create-namespace --set image.repository=ghcr.io/<your-github-username>/nginx --set image.tag=latest
+$ helm upgrade nginx-app --install ./charts/nginx-app --namespace openshift-lab --create-namespace --set image.repository=ghcr.io/<your-github-username>/nginx --set image.tag=latest --set service.port=8080
 Release "nginx-app" does not exist. Installing it now.
 NAME: nginx-app
 LAST DEPLOYED: Wed Jan 21 13:07:26 2026
@@ -319,6 +322,37 @@ NOTES:
   export CONTAINER_PORT=$(kubectl get pod --namespace openshift-lab $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
   echo "Visit http://127.0.0.1:8080 to use your application"
   kubectl --namespace openshift-lab port-forward $POD_NAME 8080:$CONTAINER_PORT
+```
+
+If everything was successful, we should now have a single nginx pod running!
+We can verify this with the following commands.
+
+```shell
+$ kubectl get pods --namespace openshift-lab
+NAME                         READY   STATUS    RESTARTS   AGE
+nginx-app-7cc9d9885d-8dmsk   1/1     Running   0          5s
+
+$ kubectl logs --namespace openshift-lab nginx-app-7cc9d9885d-8dmsk
+/docker-entrypoint.sh: /docker-entrypoint.d/ is not empty, will attempt to perform configuration
+/docker-entrypoint.sh: Looking for shell scripts in /docker-entrypoint.d/
+/docker-entrypoint.sh: Launching /docker-entrypoint.d/10-listen-on-ipv6-by-default.sh
+10-listen-on-ipv6-by-default.sh: info: Getting the checksum of /etc/nginx/conf.d/default.conf
+10-listen-on-ipv6-by-default.sh: info: /etc/nginx/conf.d/default.conf differs from the packaged version
+/docker-entrypoint.sh: Sourcing /docker-entrypoint.d/15-local-resolvers.envsh
+/docker-entrypoint.sh: Launching /docker-entrypoint.d/20-envsubst-on-templates.sh
+/docker-entrypoint.sh: Launching /docker-entrypoint.d/30-tune-worker-processes.sh
+/docker-entrypoint.sh: Configuration complete; ready for start up
+2026/01/21 19:27:27 [notice] 1#1: using the "epoll" event method
+2026/01/21 19:27:27 [notice] 1#1: nginx/1.29.3
+2026/01/21 19:27:27 [notice] 1#1: built by gcc 14.2.0 (Debian 14.2.0-19) 
+2026/01/21 19:27:27 [notice] 1#1: OS: Linux 5.14.0-570.66.1.el9_6.x86_64
+2026/01/21 19:27:27 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2026/01/21 19:27:27 [notice] 1#1: start worker processes
+2026/01/21 19:27:27 [notice] 1#1: start worker process 23
+2026/01/21 19:27:27 [notice] 1#1: start worker process 24
+2026/01/21 19:27:27 [notice] 1#1: start worker process 25
+2026/01/21 19:27:27 [notice] 1#1: start worker process 26
+10.217.0.2 - - [21/Jan/2026:19:27:28 +0000] "GET / HTTP/1.1" 200 615 "-" "kube-probe/1.33" "-"
 ```
 
 ### CI/CD, Runners, and Networking
