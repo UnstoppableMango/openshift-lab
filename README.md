@@ -116,11 +116,11 @@ Copy the following YAML below the boilerplate we just added.
 Make sure to replace `<your-github-username>` with the **lower-cased** version of your GitHub username!
 
 ```diff
-# ... elided
+  # ... elided
 
-permissions:
-  contents: read
-  packages: write
+  permissions:
+    contents: read
+    packages: write
 
 + env:
 +   # Replace with your GitHub username, lower-cased
@@ -140,7 +140,7 @@ permissions:
 ```
 
 > [!NOTE]
-> In GitLab we would add content to `.gitlab-ci.yml` like:
+> In GitLab we could add content to `.gitlab-ci.yml` like:
 >
 > ```yaml
 > stages:
@@ -172,7 +172,7 @@ Next, we'll modify the workflow to push to an image registry so that our cluster
 Modify `.github/workflows/ci.yml` to add the following YAML.
 
 ```diff
-# ... elided
+  # ... elided
 
     - name: Install Podman
       uses: redhat-actions/podman-install@main
@@ -195,11 +195,11 @@ Modify `.github/workflows/ci.yml` to add the following YAML.
 > In GitLab we would add content to `.gitlab-ci.yml` like:
 >
 > ```diff
-> # ... elieded
+>   # ... elieded
 >
-> build-image:
->   image: quay.io/podman/stable
->   stage: build
+>   build-image:
+>     image: quay.io/podman/stable
+>     stage: build
 > + before_script:
 > +   - podman login -u $GITLAB_USER -p $REGISTRY_PASSWORD
 >   script:
@@ -304,7 +304,7 @@ This keeps the tutorial light and focused, the reasoning is elaborated on in the
 Add the following YAML to our workflow file:
 
 ```diff
-# ... elided
+  # ... elided
 
     - name: Push the container image
       run: podman push ghcr.io/${{ env.GITHUB_USERNAME }}/nginx:latest
@@ -324,22 +324,22 @@ Add the following YAML to our workflow file:
 ```
 
 > [!NOTE]
-> In GitLab we would add content to `.gitlab-ci.yml` like:
+> In GitLab we could edit `.gitlab-ci.yml` like:
 >
 > ```diff
-> stages:
->   - build
-> + - deploy
+>   stages:
+>     - build
+> +   - deploy
 >
 > # ... elided
 >
-> +deploy-image:
-> +  image: docker.io/alpine/helm:3.19.1
-> +  stage: deploy
-> +  before_script:
-> +    - oc login --token $OPENSHIFT_TOKEN $OPENSHIFT_URL
-> +  script:
-> +    - helm upgrade nginx-app --install ./charts/nginx-app # ...
+> + deploy-image:
+> +   image: docker.io/alpine/helm:3.19.1
+> +   stage: deploy
+> +   before_script:
+> +     - oc login --token $OPENSHIFT_TOKEN $OPENSHIFT_URL
+> +   script:
+> +     - helm upgrade nginx-app --install ./charts/nginx-app # ...
 > ```
 
 First we log in to the cluster.
@@ -528,7 +528,7 @@ Now, we can go back into `./.github/workflows/ci.yml` and update it to use our n
 Make the following changes to `./.github/workflows/ci.yml`:
 
 ```diff
-# ... elided
+  # ... elided
 
 -   - name: Install Podman
 -     uses: redhat-actions/podman-install@main
@@ -551,12 +551,25 @@ Make the following changes to `./.github/workflows/ci.yml`:
 +       name: nginx
 +       github-username: ${{ env.GITHUB_USERNAME }}
 +       github-token: ${{ secrets.GITHUB_TOKEN }}
+
++   # - name: Authenticate and set context
++   #   uses: redhat-actions/oc-login@v1
++   #   with:
++   #     openshift_server_url: https://api.crc.testing:6443
++   #     openshift_token: ${{ secrets.OPENSHIFT_TOKEN }}
+
++   # - name: Deploy the application
++   #   run: |
++   #     helm upgrade nginx-app --install ./charts/nginx-app \
++   #       --namespace openshift-lab \
++   #       --create-namespace \
++   #       --values ./values.yaml
 ```
 
 Commit and push the changes.
 Our workflow should work exactly the same as it did before, but now we can share our deployment steps with other applications.
-We put the action in a local path within the current repository for this example, but actions can live (almost) anywhere.
 
+We put the action in a local path within the current repository for this example, but actions can live (almost) anywhere.
 It is common to host actions in their own repository, and refer to them using the repository name and version tag.
 This is actually what all the steps with `uses:` are doing!
 For example, here is the [action.yml for actions/checkout@v5](https://github.com/actions/checkout/blob/v5/action.yml).
