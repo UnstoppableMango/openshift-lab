@@ -269,7 +269,7 @@ image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.App
 > [!TIP]
 > With the template created by `helm` v3.19.1 this is located on line 41.
 
-The current value may look a little cryptic, as it is using the [helm template syntax](https://helm.sh/docs/topics/charts#templates-and-values) but we can gloss over that for now.
+The current value may look a little cryptic as it is using the [helm template syntax](https://helm.sh/docs/topics/charts#templates-and-values), but we can gloss over that for now.
 The important part is that this line specifies the image that the application will use when it is deployed.
 We'll need to teach helm where to find our custom image when we run the deployment command in the next section.
 We can see that we'll need to give it `.Values.image.repository` and `.Values.image.tag`.
