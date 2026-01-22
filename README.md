@@ -201,10 +201,10 @@ Modify `.github/workflows/ci.yml` to add the following YAML.
 >     image: quay.io/podman/stable
 >     stage: build
 > + before_script:
-> +   - podman login -u $GITLAB_USER -p $REGISTRY_PASSWORD
+> +   - podman login -u $GITHUB_USERNAME -p $REGISTRY_PASSWORD ghcr.io
 >   script:
->     - podman build . --tag ghcr.io/$GITLAB_USER/nginx:latest
-> +   - podman push ghcr.io/$GITLAB_USER/nginx:latest
+>     - podman build . --tag ghcr.io/$GITHUB_USERNAME/nginx:latest
+> +   - podman push ghcr.io/$GITHUB_USERNAME/nginx:latest
 > ```
 
 Commit and push these changes as well.
@@ -256,7 +256,7 @@ Creating charts/nginx-app
 
 This command will have generated quite a few files, but we'll focus on just a couple of them.
 
-- `charts/nxing-app/Chart.yaml` contains the chart package definition. We don't need to worry about its contents right now, but know that it describes the package so `helm` knows how to work with it.
+- `charts/nginx-app/Chart.yaml` contains the chart package definition. We don't need to worry about its contents right now, but know that it describes the package so `helm` knows how to work with it.
 - `charts/nginx-app/values.yaml` contains the default [Helm "values"](https://helm.sh/docs/chart_template_guide/values_files/) or, in other words, the configuration we supply to helm when we're deploying.
 - `charts/nginx-app/templates/deployment.yaml` contains the kubernetes "Deployment" resource that represents the deployment of our application on the cluster.
 
