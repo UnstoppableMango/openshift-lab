@@ -52,6 +52,9 @@ Copy the following contents into `Dockerfile`.
 FROM docker.io/nginxinc/nginx-unprivileged:latest
 ```
 
+> [!TIP]
+> We use the `unprivileged` variant of nginx because OpenShift is rootless by default.
+
 To build the image, run the following command.
 
 ```shell
@@ -271,15 +274,14 @@ image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.App
 
 The current value may look a little cryptic as it is using the [helm template syntax](https://helm.sh/docs/topics/charts#templates-and-values), but we can gloss over that for now.
 The important part is that this line specifies the image that the application will use when it is deployed.
-We'll need to teach helm where to find our custom image when we run the deployment command in the next section.
-We can see that we'll need to give it `.Values.image.repository` and `.Values.image.tag`.
+We'll need to provide values for `.Values.image.repository` and `.Values.image.tag`.
 
 Helm allows us to supply configuration from a few different sources, we'll use the file-based configuration here.
 As mentioned above, the default configuration lives in `charts/nginx-app/values.yaml`.
 This file is very useful to reference when constructing your own `values.yaml` file.
 
 Let's create our own values file now, create `values.yaml` with the following contents.
-As before, replace `<your-github-username>` with the lower-cased version of your username so that `repository` matches your image name.
+As before, replace `<your-github-username>` with the lower-cased version of your username so that `repository:` matches your image name.
 
 ```yaml
 image:
