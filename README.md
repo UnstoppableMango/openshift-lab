@@ -34,31 +34,14 @@ oc login -u kubeadmin https://api.ctc.testing:6443
 
 ## Create an external certificate Authority
 
-In practice the CA will come from some external source, such as a verified .
+In practice the CA will come from some external source, such as a verified CA issuer or an existing PKI.
 For this tutorial, we'll create a local self-signed CA to test with.
 
-First, lets generate the root CA private key.
-
 ```shell
-openssl genrsa -out ./ca/certs/ca.key 2048
-```
-
-```shell
-$ openssl req -new -x509 -key ./ca/certs/ca.key -out ./ca/certs/ca.crt
-You are about to be asked to enter information that will be incorporated
-into your certificate request.
-What you are about to enter is what is called a Distinguished Name or a DN.
-There are quite a few fields but you can leave some blank
-For some fields there will be a default value,
-If you enter '.', the field will be left blank.
+$ openssl req -new -x509 -newkey rsa:2048 -keyout ./ca/certs/ca.key -out ./ca/certs/ca.crt -subj '/CN=*.apps.crc.testing' -nodes
+...++++++++++++++++++++++++++++++++...
+...........+.+.....+....+++++++++++...
 -----
-Country Name (2 letter code) [AU]:US
-State or Province Name (full name) [Some-State]:Iowa
-Locality Name (eg, city) []:Des Moines
-Organization Name (eg, company) [Internet Widgits Pty Ltd]:Example Org
-Organizational Unit Name (eg, section) []:
-Common Name (e.g. server FQDN or YOUR name) []:
-Email Address []:
 ```
 
 ## Generate a certificate for the ingress controller
@@ -66,50 +49,12 @@ Email Address []:
 OpenShift requires that the certificate includes the `subjectAltName` (SAN) extension showing `*.apps.<clustername>.<domain>`.
 We'll create an openssl configuration file to facilitate setting this extension when creating our CSR.
 For OpenShift Local, we'll use `*.apps.crc.testing` for the SAN.
-Copy the following contents into `./ca/ingress.conf`.
-
-```toml
-[ req ]
-default_bits = 2048
-default_keyfile = ./ca/certs/ingress.key
-encrypt_key = no
-default_md = sha1
-prompt = no
-utf8 = yes
-distinguished_name = ingress_dn
-req_extensions = ingress_extensions
-
-[ ingress_dn ]
-C = US
-ST = Iowa
-L = Des Moines
-O = Example Org
-CN = *.apps.crc.testing
-
-[ ingress_extensions ]
-basicConstraints=CA:FALSE
-subjectAltName=@ingress_sans
-subjectKeyIdentifier = hash
-
-[ ingress_sans ]
-DNS.1 = *.apps.crc.testing
-```
-
-Create the certificate signing request (CSR).
 
 ```shell
-$ openssl req -new -out ./ca/certs/ingress.csr -config ./ca/ingress.conf
-...+.........+......+.....+...+...+....+...........+.........+....+..+....+++++++++++++++++++++++++++++++++++++++*..+....+.....+++++++++++++++++++++++++++++++++++++++*......+..+.......+.....+....+...........+......+..................+....+..+....+..............+......+....+...+..+......++++++
-.+..........+++++++++++++++++++++++++++++++++++++++*......+++++++++++++++++++++++++++++++++++++++*..+.....+...++++++
+$ openssl req -new -newkey rsa:2048 -keyout ./ca/certs/ingress.key -out ./ca/certs/ingress.crt -CA ./ca/certs/ca.crt -CAkey ./ca/certs/ca.key -subj '/CN=*.apps.crc.testing' -addext 'subjectAltName = DNS:*.apps.crc.testing' -nodes
+...+.........+......+.....+...
+.+..........+++++++++++++++...
 -----
-```
-
-Sign the certificate with our CA.
-
-```shell
-$ openssl x509 -req -in ./ca/certs/ingress.csr -CA ./ca/certs/ca.crt -CAkey ./ca/certs/ca.key -CAcreateserial -out ./ca/certs/ingress.crt
-Certificate request self-signature ok
-subject=C=US, ST=Iowa, L=Des Moines, O=Example Org, CN=*.apps.crc.testing
 ```
 
 Verify everything has been created properly up to this point.
@@ -118,3 +63,80 @@ Verify everything has been created properly up to this point.
 $ openssl verify -CAfile ./ca/certs/ca.crt ./ca/certs/ingress.crt
 ./ca/certs/ingress.crt: OK
 ```
+
+```shell
+$ openssl x509 -in ./ca/certs/ingress.crt -noout -text
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number:
+            10:82:28:19:04:c7:7d:5b:2c:9d:2a:7a:eb:86:89:b4:96:d8:86:47
+        Signature Algorithm: sha256WithRSAEncryption
+        Issuer: CN=*.apps.crc.testing
+        Validity
+            Not Before: Jan 27 21:25:28 2026 GMT
+            Not After : Feb 26 21:25:28 2026 GMT
+        Subject: CN=*.apps.crc.testing
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (2048 bit)
+                Modulus:
+                    00:dd:31:ac:0a:7d:1f:65:18:a2:5b:d2:4b:8b:df:
+                    ...
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Subject Key Identifier: 
+                5A:E1:48:85:F6:74:1B:3D:EE:8B:D5:F7:71:E9:BD:12:AD:06:17:80
+            X509v3 Authority Key Identifier: 
+                8C:4E:D9:28:02:A4:9E:6B:61:3D:2A:1F:95:B7:39:EA:BA:A4:F6:57
+            X509v3 Basic Constraints: critical
+                CA:TRUE
+            X509v3 Subject Alternative Name: 
+                DNS:*.apps.crc.testing
+    Signature Algorithm: sha256WithRSAEncryption
+    Signature Value:
+        69:58:eb:5f:d5:4f:45:5b:bb:e9:c9:57:d0:e2:d8:a6:28:d4:
+        ...
+```
+
+Ensure your cert contains the SAN extension.
+In the above cert, this is the part that looks like:
+
+```text
+            X509v3 Subject Alternative Name: 
+                DNS:*.apps.crc.testing
+```
+
+## Override the default OpenShift ingress certificate
+
+First we need to add our CA to the cluster.
+Run the following command to create a new `ConfigMap` with our CA:
+
+```shell
+$ oc create configmap custom-ca --from-file=ca-bundle.crt=./ca/certs/ca.crt -n openshift-config
+configmap/custom-ca created
+```
+
+Next we'll tell the OpenShift proxy to use the CA we just added.
+
+```shell
+$ oc patch proxy/cluster --type=merge --patch='{"spec":{"trustedCA":{"name":"custom-ca"}}}'
+proxy.config.openshift.io/cluster patched
+```
+
+Then add the ingress cert and key to a `Secret`.
+
+```shell
+$ oc create secret tls ingress-tls --cert=./ca/certs/ingress.crt --key=./ca/certs/ingress.key -n openshift-ingress
+secret/ingress-tls created
+```
+
+Finally, we'll update the ingress controller configuration to use our cert and key.
+
+```shell
+$ oc patch ingresscontroller.operator default --type=merge --patch='{"spec":{"defaultCertificate":{"name":"ingress-tls"}}}' -n openshfit-ingress-operator
+ingresscontroller.operator.openshift.io/default patched
+```
+
+This final command will trigger OpenShift to restart the ingress controller and a few other dependencies.
+This may take some time to complete, and the console will be temporarily unavailable.
