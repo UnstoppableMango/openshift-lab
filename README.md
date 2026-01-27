@@ -63,36 +63,45 @@ Email Address []:
 
 ## Generate a certificate for the ingress controller
 
-Generate a private key for the cert.
+OpenShift requires that the certificate includes the `subjectAltName` (SAN) extension showing `*.apps.<clustername>.<domain>`.
+We'll create an openssl configuration file to facilitate setting this extension when creating our CSR.
+For OpenShift Local, we'll use `*.apps.crc.testing` for the SAN.
+Copy the following contents into `./ca/ingress.conf`.
 
-```shell
-openssl genrsa -out ./ca/certs/ingress.key 2048
+```toml
+[ req ]
+default_bits = 2048
+default_keyfile = ./ca/certs/ingress.key
+encrypt_key = no
+default_md = sha1
+prompt = no
+utf8 = yes
+distinguished_name = ingress_dn
+req_extensions = ingress_extensions
+
+[ ingress_dn ]
+C = US
+ST = Iowa
+L = Des Moines
+O = Example Org
+CN = *.apps.crc.testing
+
+[ ingress_extensions ]
+basicConstraints=CA:FALSE
+subjectAltName=@ingress_sans
+subjectKeyIdentifier = hash
+
+[ ingress_sans ]
+DNS.1 = *.apps.crc.testing
 ```
 
 Create the certificate signing request (CSR).
-`openssl` will prompt for input, example values are provided in the output below.
 
 ```shell
-$ openssl req -new -key ./ca/certs/ingress.key -out ./ca/certs/ingress.csr
-You are about to be asked to enter information that will be incorporated
-into your certificate request.
-What you are about to enter is what is called a Distinguished Name or a DN.
-There are quite a few fields but you can leave some blank
-For some fields there will be a default value,
-If you enter '.', the field will be left blank.
+$ openssl req -new -out ./ca/certs/ingress.csr -config ./ca/ingress.conf
+...+.........+......+.....+...+...+....+...........+.........+....+..+....+++++++++++++++++++++++++++++++++++++++*..+....+.....+++++++++++++++++++++++++++++++++++++++*......+..+.......+.....+....+...........+......+..................+....+..+....+..............+......+....+...+..+......++++++
+.+..........+++++++++++++++++++++++++++++++++++++++*......+++++++++++++++++++++++++++++++++++++++*..+.....+...++++++
 -----
-Country Name (2 letter code) [AU]:US
-State or Province Name (full name) [Some-State]:Iowa
-Locality Name (eg, city) []:Des Moines
-Organization Name (eg, company) [Internet Widgits Pty Ltd]:Example Org
-Organizational Unit Name (eg, section) []:
-Common Name (e.g. server FQDN or YOUR name) []:*.apps.crc.testing
-Email Address []:
-
-Please enter the following 'extra' attributes
-to be sent with your certificate request
-A challenge password []:
-An optional company name []:
 ```
 
 Sign the certificate with our CA.
