@@ -32,7 +32,7 @@ Also, make sure you're currently logged in with the `kubeadmin` account.
 oc login -u kubeadmin https://api.ctc.testing:6443
 ```
 
-## Create an external certificate Authority
+## Prepare the CA and Ingress certificates
 
 In practice the CA will come from some external source, such as a verified CA issuer or an existing PKI.
 For this tutorial, we'll create a local self-signed CA to test with.
@@ -43,8 +43,6 @@ $ openssl req -new -x509 -newkey rsa:2048 -keyout ./ca/certs/ca.key -out ./ca/ce
 ...........+.+.....+....+++++++++++...
 -----
 ```
-
-## Generate a certificate for the ingress controller
 
 OpenShift requires that the certificate includes the `subjectAltName` (SAN) extension showing `*.apps.<clustername>.<domain>`.
 We'll create an openssl configuration file to facilitate setting this extension when creating our CSR.
