@@ -51,7 +51,7 @@ We'll create an openssl configuration file to facilitate setting this extension 
 For OpenShift Local, we'll use `*.apps.crc.testing` for the SAN.
 
 ```shell
-$ openssl req -new -newkey rsa:2048 -keyout ./ca/certs/ingress.key -out ./ca/certs/ingress.crt -CA ./ca/certs/ca.crt -CAkey ./ca/certs/ca.key -subj '/CN=*.apps.crc.testing' -addext 'subjectAltName = DNS:*.apps.crc.testing' -nodes
+$ openssl req -new -newkey rsa:2048 -keyout ./ca/certs/ingress.key -out ./ca/certs/ingress.crt -CA ./ca/certs/ca.crt -CAkey ./ca/certs/ca.key -subj '/CN=*.apps.crc.testing' -addext 'subjectAltName = DNS:*.apps.crc.testing,DNS:*.apps-crc.testing' -nodes
 ...+.........+......+.....+...
 .+..........+++++++++++++++...
 -----
@@ -92,7 +92,7 @@ Certificate:
             X509v3 Basic Constraints: critical
                 CA:TRUE
             X509v3 Subject Alternative Name: 
-                DNS:*.apps.crc.testing
+                DNS:*.apps.crc.testing, DNS:*.apps-crc.testing
     Signature Algorithm: sha256WithRSAEncryption
     Signature Value:
         69:58:eb:5f:d5:4f:45:5b:bb:e9:c9:57:d0:e2:d8:a6:28:d4:
@@ -104,7 +104,7 @@ In the above cert, this is the part that looks like:
 
 ```text
             X509v3 Subject Alternative Name: 
-                DNS:*.apps.crc.testing
+                DNS:*.apps.crc.testing, DNS:*.apps-crc.testing
 ```
 
 ## Override the default OpenShift ingress certificate
@@ -134,9 +134,27 @@ secret/ingress-tls created
 Finally, we'll update the ingress controller configuration to use our cert and key.
 
 ```shell
-$ oc patch ingresscontroller.operator default --type=merge --patch='{"spec":{"defaultCertificate":{"name":"ingress-tls"}}}' -n openshfit-ingress-operator
+$ oc patch ingresscontroller.operator default --type=merge --patch='{"spec":{"defaultCertificate":{"name":"ingress-tls"}}}' -n openshift-ingress-operator
 ingresscontroller.operator.openshift.io/default patched
 ```
 
 This final command will trigger OpenShift to restart the ingress controller and a few other dependencies.
 This may take some time to complete, and the console will be temporarily unavailable.
+
+When you set up OpenShift local and used the console for the first time, your browser likely warned about an untrusted certificate.
+The OpenShift console uses the same certificate for ingress, so you should see a similar warning with our new cert.
+
+Navigate to the console when it returns, and inspect the certificate using your browser's tooling.
+Your browser should report the same information about the certificate that the `openssl x509 -in ./ca/certs/ingress.crt -noout -text` command output.
+
+## Configure TLS on an Ingress
+
+TODO
+
+## Configure TLS on an HTTPRoute
+
+TODO
+
+## Let cert-manager control the PKI
+
+TODO
