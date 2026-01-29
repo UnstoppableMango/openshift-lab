@@ -38,7 +38,7 @@ In practice the CA will come from some external source, such as a verified CA is
 For this tutorial, we'll create a local self-signed CA to test with.
 
 ```shell
-$ openssl req -new -x509 -newkey rsa:2048 -keyout ./ca/certs/ca.key -out ./ca/certs/ca.crt -subj '/CN=*.apps.crc.testing' -nodes
+$ openssl req -x509 -new -newkey rsa:2048 -keyout ./certs/ca.key -out ./certs/ca.crt -subj '/CN=OpenShift Lab CA' -nodes
 ...++++++++++++++++++++++++++++++++...
 ...........+.+.....+....+++++++++++...
 -----
@@ -46,10 +46,10 @@ $ openssl req -new -x509 -newkey rsa:2048 -keyout ./ca/certs/ca.key -out ./ca/ce
 
 OpenShift requires that the certificate includes the `subjectAltName` (SAN) extension showing `*.apps.<clustername>.<domain>`.
 We'll create an openssl configuration file to facilitate setting this extension when creating our CSR.
-For OpenShift Local, we'll use `*.apps.crc.testing` for the SAN.
+For OpenShift Local, we'll use `*.apps-crc.testing` for the SAN.
 
 ```shell
-$ openssl req -new -newkey rsa:2048 -keyout ./ca/certs/ingress.key -out ./ca/certs/ingress.crt -CA ./ca/certs/ca.crt -CAkey ./ca/certs/ca.key -subj '/CN=*.apps.crc.testing' -addext 'subjectAltName = DNS:*.apps.crc.testing,DNS:*.apps-crc.testing' -nodes
+$ openssl req -new -newkey rsa:2048 -keyout ./certs/ingress.key -out ./certs/ingress.crt -CA ./certs/ca.crt -CAkey ./certs/ca.key -subj '/CN=*.apps-crc.testing' -addext 'subjectAltName = DNS:*.apps-crc.testing' -nodes
 ...+.........+......+.....+...
 .+..........+++++++++++++++...
 -----
@@ -58,12 +58,12 @@ $ openssl req -new -newkey rsa:2048 -keyout ./ca/certs/ingress.key -out ./ca/cer
 Verify everything has been created properly up to this point.
 
 ```shell
-$ openssl verify -CAfile ./ca/certs/ca.crt ./ca/certs/ingress.crt
-./ca/certs/ingress.crt: OK
+$ openssl verify -CAfile ./certs/ca.crt ./certs/ingress.crt
+./certs/ingress.crt: OK
 ```
 
 ```shell
-$ openssl x509 -in ./ca/certs/ingress.crt -noout -text
+$ openssl x509 -in ./certs/ingress.crt -noout -text
 Certificate:
     Data:
         Version: 3 (0x2)
@@ -90,7 +90,7 @@ Certificate:
             X509v3 Basic Constraints: critical
                 CA:TRUE
             X509v3 Subject Alternative Name: 
-                DNS:*.apps.crc.testing, DNS:*.apps-crc.testing
+                DNS:*.apps-crc.testing
     Signature Algorithm: sha256WithRSAEncryption
     Signature Value:
         69:58:eb:5f:d5:4f:45:5b:bb:e9:c9:57:d0:e2:d8:a6:28:d4:
@@ -102,16 +102,16 @@ In the above cert, this is the part that looks like:
 
 ```text
             X509v3 Subject Alternative Name: 
-                DNS:*.apps.crc.testing, DNS:*.apps-crc.testing
+                DNS:*.apps-crc.testing
 ```
 
 ## Override the default OpenShift ingress certificate
 
-First we need to add our CA to the cluster.
+<!-- First we need to add our CA to the cluster.
 Run the following command to create a new `ConfigMap` with our CA:
 
 ```shell
-$ oc create configmap custom-ca --from-file=ca-bundle.crt=./ca/certs/ca.crt -n openshift-config
+$ oc create configmap custom-ca --from-file=ca-bundle.crt=./certs/ca.crt -n openshift-config
 configmap/custom-ca created
 ```
 
@@ -120,12 +120,12 @@ Next we'll tell the OpenShift proxy to use the CA we just added.
 ```shell
 $ oc patch proxy/cluster --type=merge --patch='{"spec":{"trustedCA":{"name":"custom-ca"}}}'
 proxy.config.openshift.io/cluster patched
-```
+``` -->
 
 Then add the ingress cert and key to a `Secret`.
 
 ```shell
-$ oc create secret tls ingress-tls --cert=./ca/certs/ingress.crt --key=./ca/certs/ingress.key -n openshift-ingress
+$ oc create secret tls ingress-tls --cert=./certs/ingress.crt --key=./certs/ingress.key -n openshift-ingress
 secret/ingress-tls created
 ```
 
@@ -143,7 +143,7 @@ When you set up OpenShift local and used the console for the first time, your br
 The OpenShift console uses the same certificate for ingress, so you should see a similar warning with our new cert.
 
 Navigate to the console when it returns, and inspect the certificate using your browser's tooling.
-Your browser should report the same information about the certificate that the `openssl x509 -in ./ca/certs/ingress.crt -noout -text` command output.
+Your browser should report the same information about the certificate that the `openssl x509 -in ./certs/ingress.crt -noout -text` command output.
 
 ## Configure TLS on an Ingress
 
