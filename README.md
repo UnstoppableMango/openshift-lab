@@ -145,8 +145,14 @@ ingresscontroller.operator.openshift.io/default patched
 This final command will trigger OpenShift to restart the ingress controller and a few other dependencies.
 This may take some time to complete, and the console will be temporarily unavailable.
 
+You can watch the progress with:
+
+```shell
+watch oc get pods -A
+```
+
 When you set up OpenShift local and used the console for the first time, your browser likely warned about an untrusted certificate.
-The OpenShift console uses the same certificate for ingress, so you should see a similar warning with our new cert.
+The OpenShift console (by default) uses the same certificate for ingress as any other endpoint, so you should see a similar warning with our new certificate.
 
 Navigate to the console when it returns, and inspect the certificate using your browser's tooling.
 Your browser should report the same information about the certificate that the `openssl x509 -in ./certs/ingress.crt -noout -text` command output.
