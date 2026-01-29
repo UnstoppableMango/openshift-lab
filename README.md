@@ -151,6 +151,11 @@ You can watch the progress with:
 watch oc get pods -A
 ```
 
+The `kube-apiserver` may also breifly go down as pods roll out, and the above command will fail.
+Fear not, it should come back within a few seconds depending on the speed of your machine.
+
+## Verify the ingress certificate
+
 When you set up OpenShift local and used the console for the first time, your browser likely warned about an untrusted certificate.
 The OpenShift console (by default) uses the same certificate for ingress as any other endpoint, so you should see a similar warning with our new certificate.
 
