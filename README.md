@@ -34,6 +34,13 @@ oc login -u kubeadmin https://api.ctc.testing:6443
 
 ## Prepare the CA and Ingress certificates
 
+First we'll create a directory to work inside of.
+`./certs` is gitignored by default.
+
+```shell
+mkdir certs
+```
+
 In practice the CA will come from some external source, such as a verified CA issuer or an existing PKI.
 For this tutorial, we'll create a local self-signed CA to test with.
 
@@ -45,8 +52,7 @@ $ openssl req -x509 -new -newkey rsa:2048 -keyout ./certs/ca.key -out ./certs/ca
 ```
 
 OpenShift requires that the certificate includes the `subjectAltName` (SAN) extension showing `*.apps.<clustername>.<domain>`.
-We'll create an openssl configuration file to facilitate setting this extension when creating our CSR.
-For OpenShift Local, we'll use `*.apps-crc.testing` for the SAN.
+OpenShift Local uses a slightly different strategy on your local machine, so we'll use `*.apps-crc.testing` for the SAN.
 
 ```shell
 $ openssl req -new -newkey rsa:2048 -keyout ./certs/ingress.key -out ./certs/ingress.crt -CA ./certs/ca.crt -CAkey ./certs/ca.key -subj '/CN=*.apps-crc.testing' -addext 'subjectAltName = DNS:*.apps-crc.testing' -addext 'basicConstraints = critical,CA:FALSE' -nodes
@@ -68,32 +74,32 @@ Certificate:
     Data:
         Version: 3 (0x2)
         Serial Number:
-            10:82:28:19:04:c7:7d:5b:2c:9d:2a:7a:eb:86:89:b4:96:d8:86:47
+            6c:37:79:6c:71:52:9a:8c:bd:49:8a:2a:e9:93:5a:8a:3a:17:bf:0d
         Signature Algorithm: sha256WithRSAEncryption
-        Issuer: CN=*.apps.crc.testing
+        Issuer: CN=OpenShift Lab CA
         Validity
-            Not Before: Jan 27 21:25:28 2026 GMT
-            Not After : Feb 26 21:25:28 2026 GMT
-        Subject: CN=*.apps.crc.testing
+            Not Before: Jan 29 22:39:18 2026 GMT
+            Not After : Feb 28 22:39:18 2026 GMT
+        Subject: CN=*.apps-crc.testing
         Subject Public Key Info:
             Public Key Algorithm: rsaEncryption
                 Public-Key: (2048 bit)
                 Modulus:
-                    00:dd:31:ac:0a:7d:1f:65:18:a2:5b:d2:4b:8b:df:
+                    00:ae:7c:5c:31:44:e4:a1:47:7d:80:31:d9:40:40:
                     ...
                 Exponent: 65537 (0x10001)
         X509v3 extensions:
             X509v3 Subject Key Identifier: 
-                5A:E1:48:85:F6:74:1B:3D:EE:8B:D5:F7:71:E9:BD:12:AD:06:17:80
+                94:A5:21:21:F5:A1:28:FD:8F:DD:AE:44:53:E2:18:92:F8:2A:50:99
             X509v3 Authority Key Identifier: 
-                8C:4E:D9:28:02:A4:9E:6B:61:3D:2A:1F:95:B7:39:EA:BA:A4:F6:57
-            X509v3 Basic Constraints: critical
-                CA:TRUE
+                2A:71:B3:04:59:6A:42:6E:8D:B3:85:8E:12:3F:40:AC:54:83:90:CA
             X509v3 Subject Alternative Name: 
                 DNS:*.apps-crc.testing
+            X509v3 Basic Constraints: critical
+                CA:FALSE
     Signature Algorithm: sha256WithRSAEncryption
     Signature Value:
-        69:58:eb:5f:d5:4f:45:5b:bb:e9:c9:57:d0:e2:d8:a6:28:d4:
+        6f:40:53:20:c5:d2:e6:d5:aa:48:c9:f2:56:31:ed:04:00:33:
         ...
 ```
 
