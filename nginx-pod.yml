@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+  namespace: ingress-lab
+  labels:
+    app: nginx
+spec:
+  containers:
+  - name: nginx-container
+    image: nginxinc/nginx-unprivileged:latest
+    ports:
+    - containerPort: 8080
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: [ ALL ]
+      seccompProfile:
+        type: RuntimeDefault
+      runAsNonRoot: true
