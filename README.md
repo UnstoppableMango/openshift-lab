@@ -406,6 +406,21 @@ $ curl -v https://nginx-pod-ingress-lab.apps-crc.testing
 
 This time we get a `503 Service Unavailable`, which is expected because we haven't configured TLS yet!
 
+We want our service to use the default certificate we configured for the cluster previously, and to do that we'll use the OpenShift Route wildcard policy.
+This needs to be set on the `Route` itself, and `Route`s are immutable so we'll need to re-create the resource.
+
+```shell
+$ oc delete route/nginx-pod
+route.route.openshift.io "nginx-pod" deleted
+```
+
+And create a new route, this time specifying the `wildcard-policy`.
+
+```shell
+$ oc expose svc nginx-pod --overrides='{"spec":{"subdomain":"nginx-pod-ingress-lab"}}' --wildcard-policy=Subdomain
+route.route.openshift.io/nginx-pod exposed
+```
+
 ## Let cert-manager control the PKI
 
 TODO

@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx-pod
+  namespace: ingress-lab
+spec:
+  rules:
+  - host: nginx-pod-ingress-lab.apps-crc.testing
+    http:
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: nginx-pod
+              port:
+                number: 80
+  tls:
+  - {}
