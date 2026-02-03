@@ -1,8 +1,9 @@
 ---
-apiVersion: config.openshift.io/v1
+apiVersion: project.openshift.io/v1
 kind: Project
 metadata:
   name: cert-manager-operator
+spec: {}
 ---
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
@@ -13,7 +14,7 @@ spec:
   targetNamespaces:
     - cert-manager-operator
 ---
-apiVersion: operators.coreos.com/v1alpha1
+apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
   name: openshift-cert-manager-operator
