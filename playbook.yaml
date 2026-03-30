@@ -1,0 +1,69 @@
+- name: Test
+  hosts: localhost
+  become: true
+  vars:
+    gitlab_url: https://gitlab.fhlbdm.com
+    registration_token: TODO
+    runner_user: dsvc_gitrunner
+    runner_name: cluster-configuration-dev
+    runner_config_file: /etc/gitlab-runner/config.toml
+    runner_work_dir: /home/gitlab-runner
+    systemd_dropin_dir: /etc/systemd/system/gitlab-runner.service.d/
+  tasks:
+    - name: Add GitLab YUM repo
+      yum_repository:
+        # https://packages.gitlab.com/install/repostiories/runner/gitlab-runner/fedora/43/config_file.repo
+        name: gitlab-runner
+        description: GitLab runner repository
+        baseurl: https://packages.gitlab.com/runner/gitlab-runner/fedora/43/$basearch
+        gpgcheck: true
+        repo_gpgcheck: true
+        gpgkey:
+          - https://packages.gitlab.com/gpgkey/gpg.key
+          - https://packages.gitlab.com/gpgkey/runner/49F16C5CC3A0F81F.pub.gpg
+          - https://packages.gitlab.com/gpgkey/runner/4C80FB51394521E9.pub.gpg
+        sslverify: true
+        sslcacert: /etc/pki/tls/certs/ca-bundle.crt
+        metadata_expire: 300
+
+    - name: Install gitlab-runner
+      dnf:
+        name: gitlab-runner >= 18.10
+        update_cache: true
+
+    - name: Create systemd drop-ins dir
+      file:
+        name: "{{ systemd_dropin_dir }}"
+        state: directory
+
+    - name: Copy systemd drop-in
+      copy:
+        owner: root
+        group: root
+        dest: "{{ systemd_dropin_dir }}/{{ runner_user }}.conf"
+        content: |
+          [Service]
+          ExecStart=
+          ExecStart=/usr/bin/gitlab-runner "run" "--config" "{{ runner_config_file }}" "--working-directory" "{{ runner_work_dir }}" "--service" "gitlab-runner" "--user" "{{ runner_user }}"
+          EnvironmentFile=
+
+    - name: Copy runner configuration
+      copy:
+        owner: root
+        group: root
+        dest: "{{ runner_config_file }}"
+        content: |
+          concurrent = 1
+          check_interval = 0
+          shutdown_timeout = 0
+
+          [session_server]
+            session_timeout = 1800
+
+          [[runners]]
+            name = "{{ runner_name }}"
+            url = "{{ gitlab_url }}"
+            token = "{{ registration_token }}"
+            executor = "shell"
+            [runners.cache]
+              MaxUploadedArchiveSize = 0
