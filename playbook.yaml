@@ -5,11 +5,120 @@
     gitlab_url: https://gitlab.fhlbdm.com
     registration_token: TODO
     runner_user: dsvc_gitrunner
+    runner_group: g-ad-group-default_svc-acct_group
     runner_name: cluster-configuration-dev
     runner_config_file: /etc/gitlab-runner/config.toml
     runner_work_dir: /home/gitlab-runner
     systemd_dropin_dir: /etc/systemd/system/gitlab-runner.service.d/
+    kerberos_realm: EXAMPLE.COM
+    kerberos_kdc: kdc.example.com
+    kerberos_admin_server: kdc.example.com
+    subuid_range: "2147483647:2147483648"
+    subgid_range: "2147483647:2147483648"
+    oc_version: "4.20.0"
+    helm_version: "v3.17.3"
   tasks:
+    # Step 1: Install tooling
+    - name: Install podman
+      dnf:
+        name: podman
+        state: present
+
+    - name: Install krb5-workstation
+      dnf:
+        name: krb5-workstation
+        state: present
+
+    - name: Add Microsoft SQL Server tools repo
+      yum_repository:
+        name: mssql-tools
+        description: Microsoft SQL Server Tools
+        baseurl: https://packages.microsoft.com/rhel/9/prod/
+        gpgcheck: true
+        gpgkey: https://packages.microsoft.com/keys/microsoft.asc
+        enabled: true
+
+    - name: Accept mssql-tools18 EULA
+      shell: ACCEPT_EULA=Y dnf install -y mssql-tools18 unixODBC-devel
+      args:
+        creates: /opt/mssql-tools18/bin/sqlcmd
+
+    - name: Download oc CLI tarball
+      get_url:
+        url: "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/{{ oc_version }}/openshift-client-linux-amd64-rhel9.tar.gz"
+        dest: /tmp/oc.tar.gz
+
+    - name: Extract oc CLI to /usr/local/bin
+      unarchive:
+        src: /tmp/oc.tar.gz
+        dest: /usr/local/bin/
+        remote_src: true
+        include:
+          - oc
+
+    - name: Download helm tarball
+      get_url:
+        url: "https://get.helm.sh/helm-{{ helm_version }}-linux-amd64.tar.gz"
+        dest: /tmp/helm.tar.gz
+
+    - name: Extract helm binary
+      unarchive:
+        src: /tmp/helm.tar.gz
+        dest: /tmp/
+        remote_src: true
+
+    - name: Install helm to /usr/local/bin
+      copy:
+        src: /tmp/linux-amd64/helm
+        dest: /usr/local/bin/helm
+        mode: "0755"
+        remote_src: true
+
+    # Step 2: Configure UID/GID mapping
+    - name: Configure subuid for runner user
+      lineinfile:
+        path: /etc/subuid
+        line: "{{ runner_user }}:{{ subuid_range }}"
+        regexp: "^{{ runner_user }}:"
+        create: true
+
+    - name: Configure subgid for runner user
+      lineinfile:
+        path: /etc/subgid
+        line: "{{ runner_user }}:{{ subgid_range }}"
+        regexp: "^{{ runner_user }}:"
+        create: true
+
+    # Step 3: Configure Kerberos
+    - name: Create Kerberos realm configuration
+      copy:
+        owner: root
+        group: root
+        mode: "a+r"
+        dest: "/etc/krb5.conf.d/{{ kerberos_realm | lower }}_realm"
+        content: |
+          [libdefaults]
+            default_realm = {{ kerberos_realm }}
+
+          [realms]
+            {{ kerberos_realm }} = {
+              kdc = {{ kerberos_kdc }}
+              admin_server = {{ kerberos_admin_server }}
+            }
+
+          [domain_realm]
+            .{{ kerberos_kdc.split('.')[1:] | join('.') }} = {{ kerberos_realm }}
+            {{ kerberos_kdc.split('.')[1:] | join('.') }} = {{ kerberos_realm }}
+
+    # Step 5: Configure the GitLab runner
+    - name: Create runner work directory
+      file:
+        path: "{{ runner_work_dir }}"
+        state: directory
+        owner: "{{ runner_user }}"
+        group: "{{ runner_group }}"
+        mode: "0750"
+
     - name: Add GitLab YUM repo
       yum_repository:
         # https://packages.gitlab.com/install/repostiories/runner/gitlab-runner/fedora/43/config_file.repo
@@ -67,3 +176,13 @@
             executor = "shell"
             [runners.cache]
               MaxUploadedArchiveSize = 0
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: true
+
+    - name: Enable and start gitlab-runner service
+      systemd:
+        name: gitlab-runner
+        enabled: true
+        state: started
